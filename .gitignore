@@ -1,4 +1,44 @@
-.env.example
+# Python cache files
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
 .venv/
+env/
+venv/
+
+# Environment variables
+.env
+.env.*
+
+# Database files
+*.db
+*.sqlite3
+
+# Migrations
+migrations/
+
+# Logs and output
+*.log
+output/
+logs/
+
+# Test coverage reports
+htmlcov/
+.coverage
+*.cover
+
+# Pytest cache
+.cache/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
