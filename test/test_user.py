@@ -12,7 +12,7 @@ def app():
         db.create_all()  # Buat tabel
         yield app
         db.session.remove()
-        db.drop_all()  # Hapus tabel setelah pengujian
+        db.drop_all() # Hapus tabel setelah pengujian
 
 @pytest.fixture
 def client(app):
@@ -31,7 +31,38 @@ def test_create_user(app):
         )
         db.session.add(user)
         db.session.commit()
+        
+        # # Debugging: Print jumlah user di database
+        # print(f"User count: {User.query.count()}")
+        # print(f"First user: {User.query.first()}")
 
         # Verifikasi user berhasil ditambahkan
         assert User.query.count() == 1
         assert User.query.first().username == "testuser"
+        
+def test_duplicate_email(app):
+    """Test untuk memastikan email unik."""
+    with app.app_context():
+        user1 = User(
+            username="user1",
+            email="duplicate@example.com",
+            password_hash="hashedpassword",
+            balance=50.00,
+            referral_code="CODE123",
+            role="user"
+        )
+        user2 = User(
+            username="user2",
+            email="duplicate@example.com",  # Email yang sama
+            password_hash="hashedpassword",
+            balance=75.00,
+            referral_code="CODE456",
+            role="user"
+        )
+        db.session.add(user1)
+        db.session.commit()
+
+        # Menambahkan user kedua dengan email yang sama harus gagal
+        with pytest.raises(Exception):
+            db.session.add(user2)
+            db.session.commit()
