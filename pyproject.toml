@@ -5,8 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "faker>=37.1.0",
     "flask>=3.1.0",
     "flask-jwt-extended>=4.7.1",
+    "flask-migrate>=4.1.0",
     "flask-sqlalchemy>=3.1.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
     "python-dotenv>=1.1.0",
 ]
