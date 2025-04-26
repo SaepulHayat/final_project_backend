@@ -13,8 +13,8 @@ class User(db.Model):
     referral_code = db.Column(db.String(10), unique=True, nullable=False)
     referred_by = db.Column(db.String(10), nullable=True)
     role = db.Column(db.String(20), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utc, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utc, onupdate=datetime.utc)
 
     def __repr__(self):  
         return f"User({self.id}, {self.username}, {self.email})"
