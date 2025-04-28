@@ -1,27 +1,20 @@
-from datetime import datetime
 from ..extensions import db
-
-# Association table for Book and Category (Many-to-Many)
-book_categories = db.Table(
-    "book_categories",
-    db.Column("book_id", db.Integer, db.ForeignKey("books.id", ondelete="CASCADE"), primary_key=True),
-    db.Column("category_id", db.Integer, db.ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True),
-)
+from sqlalchemy import CheckConstraint, PrimaryKeyConstraint, UniqueConstraint, func
+from datetime import datetime, timezone
 
 class Category(db.Model):
-    """Model for the Category table."""
-    __tablename__ = "categories"
+    __tablename__ = 'category'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
-    description = db.Column(db.Text, nullable=True)
-    parent_category_id = db.Column(db.Integer, db.ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now())
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
-    parent = db.relationship("Category", remote_side=[id], back_populates="children")
-    children = db.relationship("Category", back_populates="parent")
-    books = db.relationship("Book", secondary=book_categories, back_populates="categories")
+    books = db.relationship('Book', secondary=book_category_table, back_populates='categories')
+
+    __table_args__ = (
+        UniqueConstraint('name', name='uq_category_name'),
+    )
 
     def __repr__(self):
-        return f"Category({self.id}, {self.name})"
+        return f'<Category {self.id}: {self.name}>'

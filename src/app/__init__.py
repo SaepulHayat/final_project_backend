@@ -1,7 +1,7 @@
 from flask import Flask
 from .config import config_by_name
 from .extensions import init_db
-from .model import User, Language, Author, Publisher, Category, Seller, Address, Book, Inventory, Review, Order, OrderItem
+from .model import User
 import os
 
 
