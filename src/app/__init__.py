@@ -1,7 +1,7 @@
 from flask import Flask
 from .config import config_by_name
 from .extensions import init_db
-from .model import User
+from .model import *
 import os
 
 
@@ -12,7 +12,7 @@ def create_app():
     
     # Initialize extensions here
     init_db(app)
-    
+        
     @app.route('/')
     def index():
         return "setup flask is working!"

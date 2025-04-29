@@ -1,56 +1,83 @@
 # 1. Book
 
-- id (primary key)
+- id (Primary Key)
 - title
-- author (foreign key from "Author" table)
-- publisher (foreign key from "Publisher" table)
+- publisher_id (Foreign Key -> Publisher.id)
 - description
-- category (this book can have multiple categories)
-- rating (average rating of the book)
-- quantity
-- price (must above 0)
-- discount (greater or equal to zero. range between (0.1 - 1))
-- image url 1
-- image url 2
-- image url 3
-- seller (foreign key from "Seller" table)
-- created at
-- updated at
+- rating (DECIMAL/FLOAT, derived, nullable) # Needs update logic
+- quantity (INTEGER, CHECK >= 0)
+- price (DECIMAL(10, 2), CHECK > 0) # Example precision
+- discount_percent (INTEGER, CHECK BETWEEN 0 AND 100, DEFAULT 0)
+- image_url_1 (VARCHAR, nullable)
+- image_url_2 (VARCHAR, nullable)
+- image_url_3 (VARCHAR, nullable)
+- seller_id (Foreign Key -> Seller.id) # Ignoring Seller table itself as requested
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
 
-# 2. Rating
+# 2. Author
 
-- id (primary key)
-- poster (foreign key from "User" table)
-- score (from 1-5)
-- text
-- book id (foreign key from "Book" table. for which book is reviewed)
-- created at
-- updated at
-
-# 3. Category
-
-- id (primary key)
-- name
-- book id (foreign from "Book" table key)
-- created at
-- updated at
-
-# 4. Author
-
-- id (primary key)
+- id (Primary Key)
 - first_name
 - last_name
-- bio
-- book id (foregin key from "Book" table. for book they wrote)
-- created at
-- updated at
+- bio (TEXT)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
 
-# 5. Publisher
+# 3. Publisher
 
-- id - (primary key)
-- name
-- book id (foregin key from "Book" table. for book they published)
-- created at
-- updated at
+- id (Primary Key)
+- name (VARCHAR, UNIQUE)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
 
-# 6. Seller (It's not my job to make it. So, ignore it)
+# 4. Category
+
+- id (Primary Key)
+- name (VARCHAR, UNIQUE)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+# 5. User (Assumed - needed for Ratings)
+
+# - id (Primary Key)
+
+# ... other user fields (username, email, password_hash, etc.)
+
+# - created_at (TIMESTAMP)
+
+# - updated_at (TIMESTAMP)
+
+# 6. Rating
+
+- id (Primary Key)
+- user_id (Foreign Key -> User.id)
+- book_id (Foreign Key -> Book.id)
+- score (INTEGER, CHECK BETWEEN 1 AND 5)
+- text (TEXT, nullable)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+# 7. BookAuthor (Join Table for Many-to-Many)
+
+- book_id (Foreign Key -> Book.id)
+- author_id (Foreign Key -> Author.id)
+- PRIMARY KEY (book_id, author_id) # Composite primary key
+
+# 8. BookCategory (Join Table for Many-to-Many)
+
+- book_id (Foreign Key -> Book.id)
+- category_id (Foreign Key -> Category.id)
+- PRIMARY KEY (book_id, category_id) # Composite primary key
+
+# 9. Seller (Structure shown, but ignored per request)
+
+# - id (Primary Key)
+
+# - name
+
+# ... other seller fields
+
+# - created_at (TIMESTAMP)
+
+# - updated_at (TIMESTAMP)

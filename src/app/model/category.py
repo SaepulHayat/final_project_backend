@@ -10,7 +10,7 @@ class Category(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
-    books = db.relationship('Book', secondary=book_category_table, back_populates='categories')
+    books = db.relationship('Book', secondary='book_category_table', back_populates='categories')
 
     __table_args__ = (
         UniqueConstraint('name', name='uq_category_name'),
