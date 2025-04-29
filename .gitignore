@@ -42,3 +42,5 @@ htmlcov/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+final_project_backend.egg-info/

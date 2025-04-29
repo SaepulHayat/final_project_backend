@@ -6,7 +6,7 @@ class Rating(db.Model):
     __tablename__ = 'rating'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
     score = db.Column(db.Integer, nullable=False)
     text = db.Column(db.Text, nullable=True)

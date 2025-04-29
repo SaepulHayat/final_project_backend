@@ -81,3 +81,50 @@
 # - created_at (TIMESTAMP)
 
 # - updated_at (TIMESTAMP)
+
+final_project_backend
+├── .env
+├── .gitignore
+├── .python-version
+├── pyproject.toml
+├── README.md
+├── simple-db.md
+├── test_config.py
+├── uv.lock
+├── instance
+├── src
+│ ├── run.py
+│ ├── app
+│ │ ├── **init**.py
+│ │ ├── config.py
+│ │ ├── extensions.py
+│ │ ├── seed.py
+│ │ │ ├── **init**.cpython-311.pyc
+│ │ │ ├── config.cpython-311.pyc
+│ │ │ ├── extensions.cpython-311.pyc
+│ │ │ └── seed.cpython-311.pyc
+│ │ ├── model
+│ │ │ ├── **init**.py
+│ │ │ ├── author.py
+│ │ │ ├── book_author_table.py
+│ │ │ ├── book_category_table.py
+│ │ │ ├── book.py
+│ │ │ ├── category.py
+│ │ │ ├── publisher.py
+│ │ │ ├── rating.py
+│ │ │ ├── seller.py
+│ │ │ ├── user.py
+│ │ ├── routes
+│ │ │ ├── **init**.py
+│ │ │ └── books.py
+│ │ └── services
+│ │ ├── **init**.py
+│ │ └── average_rating.py
+│ └── final_project_backend.egg-info
+│ ├── dependency_links.txt
+│ ├── PKG-INFO
+│ ├── requires.txt
+│ ├── SOURCES.txt
+│ └── top_level.txt
+└── test
+└── **init**.py

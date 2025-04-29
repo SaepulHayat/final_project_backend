@@ -2,9 +2,14 @@ from datetime import datetime
 from sqlalchemy import CheckConstraint, PrimaryKeyConstraint, UniqueConstraint, func
 from ..extensions import db
 
-class User(db.Model):  
-    """Table for user information."""  
-    __tablename__ = "users"  
+
+from datetime import datetime
+from sqlalchemy import CheckConstraint, PrimaryKeyConstraint, UniqueConstraint, func
+from ..extensions import db
+
+class User(db.Model):
+    """Table for user information."""
+    __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -17,5 +22,8 @@ class User(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
-    def __repr__(self):  
-        return f"User({self.id}, {self.username}, {self.email})"
+    seller_profile = db.relationship('Seller', back_populates='user', uselist=False, cascade='all, delete-orphan')
+    ratings = db.relationship('Rating', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f"User({self.id}, {self.username}, {self.email}, Role: {self.role})"

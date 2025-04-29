@@ -1,6 +1,8 @@
 from ..extensions import db
 from sqlalchemy import CheckConstraint, PrimaryKeyConstraint, UniqueConstraint, func
 from datetime import datetime, timezone
+from .book_author_table import book_author_table
+from .book_category_table import book_category_table
 
 class Book(db.Model):
     __tablename__ = 'book'
@@ -21,8 +23,8 @@ class Book(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
     publisher = db.relationship('Publisher', back_populates='books')
-    authors = db.relationship('Author', secondary='book_author_table', back_populates='books')
-    categories = db.relationship('Category', secondary='book_category_table', back_populates='books')
+    authors = db.relationship('Author', secondary=book_author_table, back_populates='books')
+    categories = db.relationship('Category', secondary=book_category_table, back_populates='books')
     ratings = db.relationship('Rating', back_populates='book', cascade='all, delete-orphan')
     seller = db.relationship('Seller', back_populates='books')
 
