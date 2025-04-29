@@ -15,7 +15,7 @@ class User(db.Model):
     referred_by = db.Column(db.String(10), nullable=True)
     role = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = db.Columndb.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
     def __repr__(self):  
         return f"User({self.id}, {self.username}, {self.email})"
