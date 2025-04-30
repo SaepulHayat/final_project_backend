@@ -1,39 +1,40 @@
 # src/app/views/category_views.py
 
 from flask import Blueprint, request, jsonify
-from sqlalchemy.exc import IntegrityError
-from ..extensions import db  # Assuming db is initialized in extensions
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from ..extensions import db
+
+def login_required(f): return f
+def role_admin(f): return f
+
+# Import necessary models
 from ..model.category import Category
 from ..model.book import Book # For listing books by category
 
-# Placeholder decorators - replace with actual implementations if needed
-# from ..auth.decorators import login_required, role_admin
-def login_required(f): return f
-def role_admin(f): return f
-# def roles_required(*roles):
-#     def wrapper(f):
-#         return f
-#     return wrapper
-
 # Create Blueprint
+# Assumes this blueprint will be registered with the Flask app elsewhere
 category_bp = Blueprint('category_bp', __name__, url_prefix='/api/v1/categories')
 
-# --- Helper Function for Serialization (Simple Example) ---
+# --- Helper Function for Serialization (Optional but Recommended) ---
 def serialize_category(category):
-    """Converts a Category object to a dictionary."""
+    """Converts a Category object into a dictionary."""
     return {
-        'id': category.id,
-        'name': category.name,
-        'created_at': category.created_at.isoformat(),
-        'updated_at': category.updated_at.isoformat()
+        "id": category.id,
+        "name": category.name,
+        "created_at": category.created_at.isoformat() if category.created_at else None,
+        "updated_at": category.updated_at.isoformat() if category.updated_at else None
     }
 
-def serialize_book_simple(book):
-    """Converts a Book object to a simple dictionary for lists."""
+def serialize_book_summary(book):
+    """Converts a Book object into a summary dictionary for lists."""
+    # Adjust fields as needed for the book summary
     return {
-        'id': book.id,
-        'title': book.title,
-        'price': str(book.price) # Convert Decimal to string for JSON
+        "id": book.id,
+        "title": book.title,
+        "author_id": book.author_id, # Assuming direct author_id is sufficient here
+        "price": float(book.price) if book.price is not None else None, # Convert Decimal
+        "rating": float(book.rating) if book.rating is not None else None, # Convert Decimal
+        "image_url_1": book.image_url_1
     }
 
 # --- Category Model Endpoints ---
@@ -46,35 +47,41 @@ def add_category():
     """
     Add a new category.
     Accessible by: Admin
-    Requires JSON body: {"name": "Category Name"}
     """
     data = request.get_json()
-    if not data or not data.get('name'):
-        return jsonify({"error": "Category name is required"}), 400
+    if not data or 'name' not in data:
+        return jsonify({"error": "Missing 'name' in request body"}), 400
 
-    name = data['name'].strip()
-    if not name:
-        return jsonify({"error": "Category name cannot be empty"}), 400
+    category_name = data['name'].strip()
+    if not category_name:
+        return jsonify({"error": "'name' cannot be empty"}), 400
 
-    # Check if category already exists (case-insensitive check might be better in some cases)
-    existing_category = db.session.execute(db.select(Category).filter_by(name=name)).scalar_one_or_none()
+    # Check if category already exists (case-insensitive check might be better)
+    existing_category = Category.query.filter(Category.name.ilike(category_name)).first()
     if existing_category:
-        return jsonify({"error": f"Category with name '{name}' already exists"}), 409 # Conflict
+        return jsonify({"error": f"Category '{category_name}' already exists"}), 409 # Conflict
 
-    new_category = Category(name=name)
+    new_category = Category(name=category_name)
 
     try:
         db.session.add(new_category)
         db.session.commit()
         return jsonify(serialize_category(new_category)), 201 # Created
-    except IntegrityError as e:
+    except IntegrityError as e: # Catch potential unique constraint violations again
         db.session.rollback()
-        # This might happen due to race conditions if the initial check passes
-        return jsonify({"error": "Database integrity error, possibly duplicate name", "details": str(e)}), 500
-    except Exception as e:
+        # Log the error e
+        print(f"IntegrityError: {e}")
+        return jsonify({"error": "Database integrity error. Category might already exist."}), 409
+    except SQLAlchemyError as e: # Catch other potential DB errors
         db.session.rollback()
-        # Log the exception e
-        return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
+        # Log the error e
+        print(f"SQLAlchemyError: {e}")
+        return jsonify({"error": "Database error occurred while adding category"}), 500
+    except Exception as e: # Catch unexpected errors
+        db.session.rollback()
+        # Log the error e
+        print(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 
 # GET /api/v1/categories/ (Guest, User, Seller, Admin)
@@ -85,18 +92,30 @@ def list_categories():
     Accessible by: Guest, User, Seller, Admin
     """
     try:
-        # Consider adding pagination for large numbers of categories
-        # page = request.args.get('page', 1, type=int)
-        # per_page = request.args.get('per_page', 10, type=int)
-        # categories_query = db.select(Category).order_by(Category.name)
-        # categories_page = db.paginate(categories_query, page=page, per_page=per_page, error_out=False)
-        # categories = categories_page.items
+        # Basic pagination (optional, adjust as needed)
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        per_page = min(per_page, 100) # Limit max per_page
 
-        categories = db.session.execute(db.select(Category).order_by(Category.name)).scalars().all()
-        return jsonify([serialize_category(cat) for cat in categories]), 200
+        categories_query = Category.query.order_by(Category.name)
+        paginated_categories = categories_query.paginate(page=page, per_page=per_page, error_out=False)
+
+        results = [serialize_category(cat) for cat in paginated_categories.items]
+
+        return jsonify({
+            "categories": results,
+            "total": paginated_categories.total,
+            "pages": paginated_categories.pages,
+            "current_page": page,
+            "per_page": per_page
+        }), 200
+    except SQLAlchemyError as e:
+        print(f"SQLAlchemyError: {e}")
+        return jsonify({"error": "Database error occurred while fetching categories"}), 500
     except Exception as e:
-        # Log the exception e
-        return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
+        print(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
 
 # GET /api/v1/categories/{category_id} (Guest, User, Seller, Admin)
 @category_bp.route('/<int:category_id>', methods=['GET'])
@@ -106,14 +125,17 @@ def get_category_details(category_id):
     Accessible by: Guest, User, Seller, Admin
     """
     try:
-        # get_or_404 simplifies checking if the category exists
-        category = db.get_or_404(Category, category_id, description=f"Category with id {category_id} not found")
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({"error": f"Category with id {category_id} not found"}), 404
+
         return jsonify(serialize_category(category)), 200
+    except SQLAlchemyError as e:
+        print(f"SQLAlchemyError: {e}")
+        return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-         # Log the exception e (already handled by get_or_404 for Not Found)
-        if hasattr(e, 'code') and e.code == 404:
-             raise e # Re-raise Werkzeug NotFound exception
-        return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
+        print(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 
 # GET /api/v1/categories/{category_id}/books (Guest, User, Seller, Admin)
@@ -124,18 +146,37 @@ def list_books_by_category(category_id):
     Accessible by: Guest, User, Seller, Admin
     """
     try:
-        category = db.get_or_404(Category, category_id, description=f"Category with id {category_id} not found")
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({"error": f"Category with id {category_id} not found"}), 404
 
-        # Access books via the relationship
-        # Consider pagination if a category can have many books
-        books_in_category = category.books # This uses the relationship defined in the model
+        # Basic pagination
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        per_page = min(per_page, 50) # Limit max per_page for book lists
 
-        return jsonify([serialize_book_simple(book) for book in books_in_category]), 200
+        # Access books through the relationship, apply pagination
+        # Note: This loads all books then slices. For very large categories,
+        # consider optimizing the query if performance becomes an issue.
+        books_query = Book.query.with_parent(category).order_by(Book.title)
+        paginated_books = books_query.paginate(page=page, per_page=per_page, error_out=False)
+
+        results = [serialize_book_summary(book) for book in paginated_books.items]
+
+        return jsonify({
+            "category": serialize_category(category), # Include category info
+            "books": results,
+            "total_books_in_category": paginated_books.total,
+            "pages": paginated_books.pages,
+            "current_page": page,
+            "per_page": per_page
+        }), 200
+    except SQLAlchemyError as e:
+        print(f"SQLAlchemyError: {e}")
+        return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-        if hasattr(e, 'code') and e.code == 404:
-             raise e # Re-raise Werkzeug NotFound exception
-        # Log the exception e
-        return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
+        print(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 
 # PATCH /api/v1/categories/{category_id} (Admin)
@@ -144,43 +185,47 @@ def list_books_by_category(category_id):
 @role_admin
 def update_category_details(category_id):
     """
-    Update a category's details (only name currently).
+    Update a category's details (e.g., name).
     Accessible by: Admin
-    Requires JSON body: {"name": "Updated Category Name"}
     """
-    category = db.get_or_404(Category, category_id, description=f"Category with id {category_id} not found")
+    try:
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({"error": f"Category with id {category_id} not found"}), 404
 
-    data = request.get_json()
-    if not data or 'name' not in data:
-        return jsonify({"error": "No update data provided or 'name' field missing"}), 400
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({"error": "Missing 'name' in request body"}), 400
 
-    new_name = data.get('name', '').strip()
-    if not new_name:
-         return jsonify({"error": "Category name cannot be empty"}), 400
+        new_name = data['name'].strip()
+        if not new_name:
+            return jsonify({"error": "'name' cannot be empty"}), 400
 
-    # Check if the new name conflicts with another existing category
-    if new_name != category.name:
-        existing_category = db.session.execute(
-            db.select(Category).filter(Category.name == new_name, Category.id != category_id)
-        ).scalar_one_or_none()
+        # Check if the new name conflicts with another existing category
+        existing_category = Category.query.filter(Category.name.ilike(new_name), Category.id != category_id).first()
         if existing_category:
-            return jsonify({"error": f"Another category with name '{new_name}' already exists"}), 409 # Conflict
+            return jsonify({"error": f"Another category with the name '{new_name}' already exists"}), 409 # Conflict
 
-        category.name = new_name
+        # Update the name if it's different
+        if category.name != new_name:
+            category.name = new_name
+            # updated_at is handled automatically by server_onupdate
 
-        try:
-            db.session.commit()
-            return jsonify(serialize_category(category)), 200
-        except IntegrityError as e:
-            db.session.rollback()
-            return jsonify({"error": "Database integrity error, possibly duplicate name", "details": str(e)}), 500
-        except Exception as e:
-            db.session.rollback()
-            # Log the exception e
-            return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
-    else:
-        # Name hasn't changed, return current data
+        db.session.commit()
         return jsonify(serialize_category(category)), 200
+
+    except IntegrityError as e: # Catch potential unique constraint violations
+        db.session.rollback()
+        print(f"IntegrityError: {e}")
+        return jsonify({"error": "Database integrity error. The name might already exist."}), 409
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        print(f"SQLAlchemyError: {e}")
+        return jsonify({"error": "Database error occurred while updating category"}), 500
+    except Exception as e:
+        db.session.rollback()
+        print(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 
 # DELETE /api/v1/categories/{category_id} (Admin)
@@ -192,22 +237,31 @@ def delete_category(category_id):
     Delete a category. Prevents deletion if books are associated with it.
     Accessible by: Admin
     """
-    category = db.get_or_404(Category, category_id, description=f"Category with id {category_id} not found")
-
-    # Strategy: Prevent deletion if books are associated
-    if category.books:
-        return jsonify({
-            "error": f"Cannot delete category '{category.name}' because it is associated with one or more books.",
-            "book_count": len(category.books) # Optionally provide count
-        }), 409 # Conflict
-
     try:
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({"error": f"Category with id {category_id} not found"}), 404
+
+        # Check if any books are associated with this category
+        # Accessing category.books performs a query
+        if category.books: # Check if the list is not empty
+             # Count associated books for a more informative message (optional)
+            book_count = Book.query.with_parent(category).count()
+            if book_count > 0:
+                return jsonify({
+                    "error": f"Cannot delete category '{category.name}' because it is associated with {book_count} book(s). Please disassociate books first."
+                }), 409 # Conflict - cannot delete due to dependencies
+
+        # If no books are associated, proceed with deletion
         db.session.delete(category)
         db.session.commit()
-        return jsonify({"message": f"Category '{category.name}' (ID: {category_id}) deleted successfully"}), 200 # OK
-        # return '', 204 # No Content is also a valid response for DELETE
+        return jsonify({"message": f"Category '{category.name}' (ID: {category_id}) deleted successfully"}), 200
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        print(f"SQLAlchemyError: {e}")
+        return jsonify({"error": "Database error occurred while deleting category"}), 500
     except Exception as e:
         db.session.rollback()
-        # Log the exception e
-        return jsonify({"error": "An unexpected error occurred during deletion", "details": str(e)}), 500
-
+        print(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500

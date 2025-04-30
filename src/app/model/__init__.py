@@ -2,7 +2,6 @@ from .book import Book
 from .user import User
 from .author import Author
 from .category import Category
-from .book_author_table import book_author_table
 from .book_category_table import book_category_table
 from .publisher import Publisher
 from .rating import Rating
@@ -13,7 +12,6 @@ __all__ = [
     'User',
     'Author',
     'Category',
-    'book_author_table',
     'book_category_table',
     'Publisher',
     'Rating',

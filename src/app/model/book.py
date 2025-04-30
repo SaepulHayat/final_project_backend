@@ -24,7 +24,7 @@ class Book(db.Model):
     seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
 
     # Add the foreign key to the Author table
-    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False) # <-- ADD THIS LINE
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=True) # <-- ADD THIS LINE
 
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
