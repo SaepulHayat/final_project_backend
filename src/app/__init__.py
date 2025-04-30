@@ -2,8 +2,7 @@ from flask import Flask
 from .config import config_by_name
 from .extensions import init_db
 from .model import *
-from .routes import author_bp, book_bp, category_bp, publisher_bp, rating_bp, seller_bp, user_bp
-from .services.average_rating import update_book_rating
+from .routes import author_bp, book_bp, category_bp, publisher_bp, rating_bp
 import os
 
 

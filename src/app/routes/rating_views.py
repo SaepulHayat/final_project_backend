@@ -56,8 +56,6 @@ def serialize_rating(rating):
 
 # POST /api/v1/books/{book_id}/ratings
 @rating_bp.route('/api/v1/books/<int:book_id>/ratings', methods=['POST'])
-@login_required
-@roles_required('User', 'Seller')
 def add_book_rating(book_id):
     """
     Add a rating/review for a specific book and update the book's average rating.
@@ -172,7 +170,6 @@ def list_book_ratings(book_id):
 
 # GET /api/v1/ratings/users/me (No changes needed here)
 @rating_bp.route('/api/v1/ratings/users/me', methods=['GET'])
-@login_required
 def list_my_ratings():
     """
     List ratings submitted by the currently authenticated user.
@@ -204,8 +201,6 @@ def list_my_ratings():
 
 # GET /api/v1/ratings/users/{user_id} (No changes needed here)
 @rating_bp.route('/api/v1/ratings/users/<int:user_id>', methods=['GET'])
-@login_required
-@role_admin
 def list_user_ratings(user_id):
     """
     List ratings submitted by a specific user.
@@ -241,7 +236,6 @@ def list_user_ratings(user_id):
 
 # GET /api/v1/ratings/{rating_id} (No changes needed here)
 @rating_bp.route('/api/v1/ratings/<int:rating_id>', methods=['GET'])
-@login_required
 def get_rating_details(rating_id):
     """
     Get details of a specific rating.
@@ -263,7 +257,6 @@ def get_rating_details(rating_id):
 
 # PATCH /api/v1/ratings/{rating_id}
 @rating_bp.route('/api/v1/ratings/<int:rating_id>', methods=['PATCH'])
-@login_required
 def update_rating(rating_id):
     """
     Update a specific rating/review and update the book's average rating.
@@ -345,7 +338,6 @@ def update_rating(rating_id):
 
 # DELETE /api/v1/ratings/{rating_id}
 @rating_bp.route('/api/v1/ratings/<int:rating_id>', methods=['DELETE'])
-@login_required
 def delete_rating(rating_id):
     """
     Delete a specific rating/review and update the book's average rating.

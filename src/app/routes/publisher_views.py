@@ -44,8 +44,6 @@ publisher_bp = Blueprint('publisher_bp', __name__, url_prefix='/api/v1/publisher
 
 # POST /api/v1/publishers/ (Admin, Seller)
 @publisher_bp.route('/', methods=['POST'])
-@login_required
-@roles_required('Admin', 'Seller')
 def add_publisher():
     """
     Add a new publisher.
@@ -198,8 +196,6 @@ def list_books_by_publisher(publisher_id):
 
 # PATCH /api/v1/publishers/{publisher_id} (Admin)
 @publisher_bp.route('/<int:publisher_id>', methods=['PATCH'])
-@login_required
-@role_admin
 def update_publisher_details(publisher_id):
     """
     Update a publisher's details (currently only 'name').
@@ -245,8 +241,6 @@ def update_publisher_details(publisher_id):
 
 # DELETE /api/v1/publishers/{publisher_id} (Admin)
 @publisher_bp.route('/<int:publisher_id>', methods=['DELETE'])
-@login_required
-@role_admin
 def delete_publisher(publisher_id):
     """
     Delete a publisher. Prevents deletion if the publisher has associated books.

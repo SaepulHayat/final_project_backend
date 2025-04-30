@@ -30,7 +30,7 @@ def get_current_seller_id():
     """Gets the seller ID for the currently logged-in user."""
     if not hasattr(g, 'user') or not g.user:
         log.error("Attempted to get seller ID without logged-in user.")
-        abort(401, "Authentication required to perform this action.") # Should be caught by @login_required usually
+        abort(401, "Authentication required to perform this action.") # Should be caught by usually
 
     if g.user.role != 'Seller' and g.user.role != 'Admin':
          # This check might be redundant if @roles_required is used, but good for clarity
@@ -131,8 +131,6 @@ book_bp = Blueprint('book_bp', __name__, url_prefix='/api/v1/books')
 
 # POST /api/v1/books/ (Seller, Admin)
 @book_bp.route('/', methods=['POST'])
-@login_required
-@roles_required('Seller', 'Admin')
 def add_book_listing():
     """
     Add a new book listing.
@@ -404,8 +402,6 @@ def get_book_details(book_id):
 
 # GET /api/v1/books/sellers/me (Seller)
 @book_bp.route('/sellers/me', methods=['GET'])
-@login_required
-@roles_required('Seller') # Only Sellers can access this
 def list_current_seller_books():
     """
     List books listed by the currently logged-in seller (paginated).
@@ -560,8 +556,6 @@ def list_seller_books(seller_id):
 
 # PATCH /api/v1/books/{book_id} (Seller, Admin)
 @book_bp.route('/<int:book_id>', methods=['PATCH'])
-@login_required
-@roles_required('Seller', 'Admin')
 def update_book_details(book_id):
     """
     Update a book's details.
@@ -726,8 +720,6 @@ def update_book_details(book_id):
 
 # DELETE /api/v1/books/{book_id} (Seller, Admin)
 @book_bp.route('/<int:book_id>', methods=['DELETE'])
-@login_required
-@roles_required('Seller', 'Admin')
 def remove_book_listing(book_id):
     """
     Remove a book listing.
