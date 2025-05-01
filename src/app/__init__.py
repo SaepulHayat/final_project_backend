@@ -26,7 +26,7 @@ def create_app():
     app.register_blueprint(book_bp, url_prefix='/api/v1/books')
     app.register_blueprint(category_bp, url_prefix='/api/v1/categories')
     app.register_blueprint(publisher_bp, url_prefix='/api/v1/publishers')
-    app.register_blueprint(rating_bp, url_prefix='/api/v1/ratings')
+    app.register_blueprint(rating_bp)
         
     @app.route('/')
     def index():
