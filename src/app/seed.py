@@ -271,12 +271,13 @@ def seed_db_command():
         # Choose relationships safely
         book_publisher = random.choice(publishers + [None]) if publishers else None
         book_seller = random.choice(sellers) # Already checked sellers exist
-        book_authors = random.sample(authors, k=random.randint(1, min(3, len(authors)))) if authors else []
+        book_author = random.choice(authors) if authors else None # Select ONE author
         book_categories = random.sample(categories, k=random.randint(1, min(4, len(categories)))) if categories else []
 
         book = Book(
             title=fake.catch_phrase(),
             publisher_id=book_publisher.id if book_publisher else None,
+            author_id=book_author.id if book_author else None, # Assign the author_id
             description=fake.text(max_nb_chars=500),
             quantity=random.randint(0, 100),
             price=round(random.uniform(5.0, 150.0), 2),
@@ -287,9 +288,8 @@ def seed_db_command():
             seller_id=book_seller.id,
         )
 
-        # Add many-to-many relationships
-        for author in book_authors:
-            book.authors.append(author)
+        # Add many-to-many relationship for categories
+        # The author relationship is now handled by author_id
         for category in book_categories:
             book.categories.append(category)
 

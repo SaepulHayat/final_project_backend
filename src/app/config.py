@@ -32,7 +32,10 @@ class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('PRODUCTION_DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
+        'sqlite:///' + os.path.join(os.path.dirname(basedir), 'test.db')    
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    WTF_CSRF_ENABLED = False
     
     if not SQLALCHEMY_DATABASE_URI:
         raise ValueError("No PRODUCTION_DATABASE_URL set for Flask application in production")
