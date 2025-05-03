@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,7 +8,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'my_very_secret_key')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     DEBUG = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -21,10 +25,10 @@ class ProductionConfig(Config):
     
 class TestConfig(Config):  
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  
-    SQLALCHEMY_TRACK_MODIFICATIONS = False  
     TESTING = True  
 
 config_by_name = {
     'dev': DevelopmentConfig,
     'prod': ProductionConfig,
+    'test': TestConfig
 }
