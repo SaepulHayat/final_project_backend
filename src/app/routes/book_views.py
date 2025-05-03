@@ -301,9 +301,12 @@ def list_books():
             query = query.filter(Book.publisher_id == int(request.args['publisher_id']))
         if 'seller_id' in request.args:
             query = query.filter(Book.seller_id == int(request.args['seller_id']))
-        if 'category_id' in request.args:
-            # For many-to-many, check if the book's categories contain the given category_id
-            query = query.filter(Book.categories.any(Category.id == int(request.args['category_id'])))
+        # --- Multi-Category Filtering (AND logic) ---
+        category_ids = request.args.getlist('category_id', type=int)
+        if category_ids:
+            # Apply a filter for each category ID provided to ensure the book belongs to ALL of them
+            for cat_id in category_ids:
+                query = query.filter(Book.categories.any(Category.id == cat_id))
         if 'min_price' in request.args:
             query = query.filter(Book.price >= Decimal(request.args['min_price']))
         if 'max_price' in request.args:
@@ -311,6 +314,17 @@ def list_books():
         if 'min_rating' in request.args:
             # Assuming 'rating' column holds the average rating
             query = query.filter(Book.rating >= Decimal(request.args['min_rating']))
+
+        # --- Location Filtering ---
+        location = request.args.get('location', type=str)
+        if location:
+            # Add a join to the Seller table. SQLAlchemy handles joins intelligently,
+            # so adding it here is generally safe even if other parts might also join.
+            query = query.join(Book.seller) # Join based on the relationship
+            # Apply the filter (case-insensitive partial match)
+            search_location = f"%{location}%"
+            query = query.filter(Seller.location.ilike(search_location))
+
     except (ValueError, InvalidOperation) as e:
         abort(400, description=f"Invalid filter value: {e}")
 
