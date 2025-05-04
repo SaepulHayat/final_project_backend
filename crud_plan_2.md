@@ -1,126 +1,108 @@
-# CRUD Plan for Bookstore Models
+# Programmer's Guide: Building Features with Separation of Concerns
 
-This document outlines the CRUD operations, corresponding API endpoints, and role-based access control for the provided SQLAlchemy models.
+This guide outlines a structured approach to developing features in the Flask application, emphasizing the separation of concerns. This pattern enhances maintainability, testability, and collaboration. We will use the existing authentication feature (`auth_route.py`, `auth_service.py`, etc.) as a primary example.
 
----
+## Core Principle: Layered Architecture
 
-## 1. User Model (`User`)
+We organize the codebase into distinct layers, each with a specific responsibility. Data and control flow primarily move vertically between these layers.
 
-**Base Path:** `/api/v1/users`
+```mermaid
+graph LR
+    A[Client Request] --> B(Routes Layer);
+    B -- Calls --> C(Service Layer);
+    C -- Uses --> D(Model Layer);
+    C -- Uses --> E(Utility Layer);
+    D -- Interacts with --> F[(Database)];
+    C -- Returns result --> B;
+    B -- Uses --> E;  // e.g., for response formatting
+    B -- Sends Response --> A;
 
-| Operation  | HTTP Method | Endpoint             | Action                                       | Allowed Roles       | Notes                                              |
-| :--------- | :---------- | :------------------- | :------------------------------------------- | :------------------ | :------------------------------------------------- |
-| **Create** | `POST`      | `/register`          | Register a new user.                         | Guest               | Creates a `User` record with role 'User'.          |
-| **Read**   | `GET`       | `/`                  | List all users (paginated).                  | Admin               |                                                    |
-| **Read**   | `GET`       | `/me`                | Get current logged-in user's profile.        | User, Seller, Admin | Requires authentication.                           |
-| **Read**   | `GET`       | `/{user_id}`         | Get a specific user's profile.               | Admin               | Potentially limited view for User/Seller roles.    |
-| **Update** | `PATCH`     | `/me`                | Update current user's profile (e.g., email). | User, Seller, Admin | Requires authentication.                           |
-| **Update** | `PATCH`     | `/me/password`       | Update current user's password.              | User, Seller, Admin | Requires current password verification.            |
-| **Update** | `PATCH`     | `/{user_id}`         | Update any user's profile (e.g., role).      | Admin               |                                                    |
-| **Update** | `PATCH`     | `/{user_id}/balance` | Update a user's balance.                     | Admin               | Use dedicated transaction endpoints for deposits.  |
-| **Delete** | `DELETE`    | `/me`                | Delete current user's account.               | User, Seller, Admin | Requires confirmation. Cascades should be handled. |
-| **Delete** | `DELETE`    | `/{user_id}`         | Delete any user's account.                   | Admin               | Cascades should be handled carefully.              |
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#ccf,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#ffc,stroke:#333,stroke-width:2px
 
----
+    subgraph Layers
+        B(Routes / routes/)
+        C(Services / services/)
+        D(Models / model/)
+        E(Utilities / utils/)
+    end
+```
 
-## 2. Seller Model (`Seller`)
+## Layer Responsibilities
 
-**Base Path:** `/api/v1/sellers`
+### 1. Routes Layer (`src/app/routes/`)
 
-| Operation  | HTTP Method | Endpoint       | Action                                        | Allowed Roles              | Notes                                                       |
-| :--------- | :---------- | :------------- | :-------------------------------------------- | :------------------------- | :---------------------------------------------------------- |
-| **Create** | `POST`      | `/`            | Create a seller profile for the current user. | User (Authenticated)       | Links to `User`, potentially changes user role to 'Seller'. |
-| **Read**   | `GET`       | `/`            | List all sellers (paginated).                 | Guest, User, Seller, Admin | Public listing.                                             |
-| **Read**   | `GET`       | `/me`          | Get the current user's seller profile.        | Seller, Admin              | Requires authentication.                                    |
-| **Read**   | `GET`       | `/{seller_id}` | Get a specific seller's profile.              | Guest, User, Seller, Admin | Public profile view.                                        |
-| **Update** | `PATCH`     | `/me`          | Update the current user's seller profile.     | Seller                     | Requires authentication. Can only update their own profile. |
-| **Update** | `PATCH`     | `/{seller_id}` | Update any seller's profile.                  | Admin                      |                                                             |
-| **Delete** | `DELETE`    | `/{seller_id}` | Delete a seller profile.                      | Admin                      | Consider implications for associated books and user role.   |
+- **Purpose:** Handles incoming HTTP requests and outgoing responses. Acts as the entry point for API interactions.
+- **Responsibilities:**
+  - Define API endpoints using Flask Blueprints (`@bp.route('/path', methods=['GET', 'POST'])`).
+  - Extract and parse data from requests (e.g., `request.get_json()`, `request.form`, `request.args`).
+  - Perform _initial, basic_ input validation if necessary (though complex validation often belongs in the Service layer or Utilities).
+  - Call the appropriate method in the corresponding Service Layer, passing the necessary data.
+  - Receive results (data or status indicators) back from the Service Layer.
+  - Format the final HTTP response (status code, headers, JSON body) using utility functions (like `src/app/utils/response.py`).
+  - Handle exceptions specific to request handling and translate them into appropriate error responses.
+- **Example:** `src/app/routes/auth_route.py` defines `/register`, `/login`, `/logout`. It parses request JSON, calls `auth_service.register_user()`, `auth_service.login_user()`, etc., and uses `success_response` / `error_response` to build the `jsonify` response.
+- **Key Rule:** Keep business logic minimal. Focus on HTTP communication.
 
----
+### 2. Service Layer (`src/app/services/`)
 
-## 3. Book Model (`Book`)
+- **Purpose:** Encapsulates the core business logic and orchestrates operations for a specific domain or feature.
+- **Responsibilities:**
+  - Implement the main workflows and rules of the application feature.
+  - Perform detailed input validation (often using utility validators).
+  - Interact with the Model Layer to fetch, create, update, or delete data.
+  - Coordinate actions involving multiple models or steps.
+  - Call Utility functions for tasks like password hashing, sending emails, interacting with external APIs, applying bonuses, etc.
+  - Handle business-specific errors and exceptions.
+  - Return processed data or status information to the Route Layer.
+- **Example:** `src/app/services/auth_service.py` contains `register_user`, `login_user`, `logout_user`. It validates input (`validate_register_input`), interacts with `User` and `BlacklistToken` models, hashes passwords (`hash_password`), verifies passwords (`verify_password`), generates tokens (`create_access_token`), handles referral logic (`ReferralBonusService`), and commits/rollbacks database sessions.
+- **Key Rule:** Should be independent of HTTP concepts (request/response objects). It deals with data and logic.
 
-**Base Path:** `/api/v1/books`
+### 3. Model Layer (`src/app/model/`)
 
-| Operation  | HTTP Method | Endpoint               | Action                                              | Allowed Roles              | Notes                                                                        |
-| :--------- | :---------- | :--------------------- | :-------------------------------------------------- | :------------------------- | :--------------------------------------------------------------------------- |
-| **Create** | `POST`      | `/`                    | Add a new book listing.                             | Seller, Admin              | `seller_id` linked to current user. Handle author/category linking.          |
-| **Read**   | `GET`       | `/`                    | List all books (paginated, filterable, searchable). | Guest, User, Seller, Admin | Public listing. Filters: category, author, publisher, seller, price, rating. |
-| **Read**   | `GET`       | `/{book_id}`           | Get details of a specific book.                     | Guest, User, Seller, Admin | Public detail view.                                                          |
-| **Read**   | `GET`       | `/sellers/me`          | List books listed by the current seller.            | Seller                     | Requires authentication.                                                     |
-| **Read**   | `GET`       | `/sellers/{seller_id}` | List books listed by a specific seller.             | Guest, User, Seller, Admin |                                                                              |
-| **Update** | `PATCH`     | `/{book_id}`           | Update a book's details.                            | Seller, Admin              | Sellers can only update their own books. Admins can update any.              |
-| **Delete** | `DELETE`    | `/{book_id}`           | Remove a book listing.                              | Seller, Admin              | Sellers can only delete their own books. Admins can delete any.              |
+- **Purpose:** Defines the application's data structures and interacts with the database.
+- **Responsibilities:**
+  - Define database table schemas using an ORM (like SQLAlchemy in `extensions.py` and used by model classes).
+  - Represent data entities as Python classes (e.g., `User`, `Book`, `Category`).
+  - May include methods directly related to the data itself (e.g., `User.verify_password(password)`).
+  - Define relationships between models (e.g., one-to-many, many-to-many).
+- **Example:** `src/app/model/user.py`, `src/app/model/blacklist_token.py`. These define the structure of the `users` and `blacklist_tokens` tables and their columns.
+- **Key Rule:** Focus solely on data structure, persistence, and basic data-related operations. Avoid embedding complex business logic here.
 
----
+### 4. Utility Layer (`src/app/utils/`)
 
-## 4. Author Model (`Author`)
+- **Purpose:** Provides reusable, cross-cutting helper functions and classes.
+- **Responsibilities:**
+  - Offer common functionalities needed by multiple layers.
+  - Examples:
+    - Response Formatting (`response.py`): Standardizing API response structures.
+    - Input Validation (`validators.py`): Defining reusable validation rules.
+    - Security (`security.py`): Password hashing/verification, token generation helpers.
+    - Decorators (`decorators.py`): Implementing reusable logic like authentication checks (`@jwt_required()`).
+    - Specific Business Calculations/Helpers (`bonus.py`): Encapsulating specific, reusable logic like referral bonuses.
+    - Constants/Enums (`roles.py`): Defining shared constants.
+- **Example:** `src/app/utils/response.py`, `src/app/utils/validators.py`, `src/app/utils/security.py`, `src/app/utils/bonus.py`.
+- **Key Rule:** Functions should be generic, self-contained, and easily testable in isolation.
 
-**Base Path:** `/api/v1/authors`
+## How to Implement a New Feature (Example: CRUD for "Books")
 
-| Operation  | HTTP Method | Endpoint             | Action                                    | Allowed Roles              | Notes                                                   |
-| :--------- | :---------- | :------------------- | :---------------------------------------- | :------------------------- | :------------------------------------------------------ |
-| **Create** | `POST`      | `/`                  | Add a new author.                         | Admin, Seller              | Sellers might add authors when listing new books.       |
-| **Read**   | `GET`       | `/`                  | List all authors (paginated, searchable). | Guest, User, Seller, Admin | Public listing.                                         |
-| **Read**   | `GET`       | `/{author_id}`       | Get details of a specific author.         | Guest, User, Seller, Admin | Public detail view.                                     |
-| **Read**   | `GET`       | `/{author_id}/books` | List books by a specific author.          | Guest, User, Seller, Admin |                                                         |
-| **Update** | `PATCH`     | `/{author_id}`       | Update an author's details.               | Admin                      |                                                         |
-| **Delete** | `DELETE`    | `/{author_id}`       | Delete an author.                         | Admin                      | Consider impact on books (disassociate/prevent delete). |
+1.  **Model:** Define `src/app/model/book.py` with necessary fields (title, author_id, publisher_id, etc.) and relationships.
+2.  **Utilities (if needed):** Create validation rules in `src/app/utils/validators.py` (e.g., `validate_book_input`).
+3.  **Service:** Create `src/app/services/book_service.py` with methods like:
+    - `create_book(data)`: Validates input, creates a `Book` instance, adds to DB session, commits.
+    - `get_book_by_id(book_id)`: Queries the DB for the book.
+    - `get_all_books(filters=None)`: Queries for multiple books, potentially applying filters.
+    - `update_book(book_id, data)`: Finds the book, validates input, updates fields, commits.
+    - `delete_book(book_id)`: Finds the book, deletes it, commits.
+4.  **Routes:** Create `src/app/routes/book_route.py`:
+    - Define endpoints: `POST /books`, `GET /books/<int:book_id>`, `GET /books`, `PUT /books/<int:book_id>`, `DELETE /books/<int:book_id>`.
+    - In each route function:
+      - Parse request data.
+      - Call the corresponding `book_service` method.
+      - Use `success_response` or `error_response` from `src/app/utils/response.py` to return the result.
 
----
-
-## 5. Category Model (`Category`)
-
-**Base Path:** `/api/v1/categories`
-
-| Operation  | HTTP Method | Endpoint               | Action                                    | Allowed Roles              | Notes                                                   |
-| :--------- | :---------- | :--------------------- | :---------------------------------------- | :------------------------- | :------------------------------------------------------ |
-| **Create** | `POST`      | `/`                    | Add a new category.                       | Admin                      |                                                         |
-| **Read**   | `GET`       | `/`                    | List all categories.                      | Guest, User, Seller, Admin | Public listing.                                         |
-| **Read**   | `GET`       | `/{category_id}`       | Get details of a specific category.       | Guest, User, Seller, Admin | Public detail view.                                     |
-| **Read**   | `GET`       | `/{category_id}/books` | List books within a specific category.    | Guest, User, Seller, Admin |                                                         |
-| **Update** | `PATCH`     | `/{category_id}`       | Update a category's details (e.g., name). | Admin                      |                                                         |
-| **Delete** | `DELETE`    | `/{category_id}`       | Delete a category.                        | Admin                      | Consider impact on books (disassociate/prevent delete). |
-
----
-
-## 6. Publisher Model (`Publisher`)
-
-**Base Path:** `/api/v1/publishers`
-
-| Operation  | HTTP Method | Endpoint                | Action                                       | Allowed Roles              | Notes                                                |
-| :--------- | :---------- | :---------------------- | :------------------------------------------- | :------------------------- | :--------------------------------------------------- |
-| **Create** | `POST`      | `/`                     | Add a new publisher.                         | Admin, Seller              | Sellers might add publishers when listing new books. |
-| **Read**   | `GET`       | `/`                     | List all publishers (paginated, searchable). | Guest, User, Seller, Admin | Public listing.                                      |
-| **Read**   | `GET`       | `/{publisher_id}`       | Get details of a specific publisher.         | Guest, User, Seller, Admin | Public detail view.                                  |
-| **Read**   | `GET`       | `/{publisher_id}/books` | List books by a specific publisher.          | Guest, User, Seller, Admin |                                                      |
-| **Update** | `PATCH`     | `/{publisher_id}`       | Update a publisher's details.                | Admin                      |                                                      |
-| **Delete** | `DELETE`    | `/{publisher_id}`       | Delete a publisher.                          | Admin                      | Consider impact on books (set null/prevent delete).  |
-
----
-
-## 7. Rating Model (`Rating`)
-
-**Base Path:** `/api/v1/ratings` (or nested)
-
-| Operation  | HTTP Method | Endpoint                   | Action                                      | Allowed Roles              | Notes                                                                   |
-| :--------- | :---------- | :------------------------- | :------------------------------------------ | :------------------------- | :---------------------------------------------------------------------- |
-| **Create** | `POST`      | `/books/{book_id}/ratings` | Add a rating/review for a specific book.    | User, Seller               | Requires authentication. `user_id` is current user. Prevent duplicates. |
-| **Read**   | `GET`       | `/books/{book_id}/ratings` | List all ratings for a specific book.       | Guest, User, Seller, Admin | Public listing.                                                         |
-| **Read**   | `GET`       | `/users/me/ratings`        | List ratings submitted by the current user. | User, Seller, Admin        | Requires authentication.                                                |
-| **Read**   | `GET`       | `/users/{user_id}/ratings` | List ratings submitted by a specific user.  | Admin                      |                                                                         |
-| **Read**   | `GET`       | `/{rating_id}`             | Get a specific rating.                      | Admin                      | User/Seller can view their own.                                         |
-| **Update** | `PATCH`     | `/{rating_id}`             | Update a rating/review.                     | User, Seller, Admin        | User/Seller can only update their own. Admins can update any.           |
-| **Delete** | `DELETE`    | `/{rating_id}`             | Delete a rating/review.                     | User, Seller, Admin        | User/Seller can only delete their own. Admins can delete any.           |
+By following this layered approach, the code becomes more organized, easier to understand, test, and modify. Each part has a clear job, reducing complexity and preventing unrelated concerns from mixing.
 
 ---
-
-**General Notes:**
-
-- **Authentication:** Most endpoints require authentication (e.g., JWT). Public read endpoints are exceptions.
-- **Authorization:** Middleware should enforce role checks for each endpoint.
-- **Relationships:** Creating/updating resources like `Book` will need logic to handle linking/unlinking related entities (Authors, Categories).
-- **Data Validation:** Input data for `POST` and `PATCH` requests must be validated.
-- **Error Handling:** Implement standard HTTP status codes for errors (400, 401, 403, 404, 500).
-- **Average Rating:** The `Book.rating` field should ideally be updated automatically via triggers or application logic whenever a `Rating` is added, updated, or deleted.

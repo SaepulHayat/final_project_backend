@@ -13,7 +13,7 @@ class Seller(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), server_onupdate=func.now(), nullable=False)
 
     user = db.relationship('User', back_populates='seller_profile')
-    books = db.relationship('Book', back_populates='seller')
+    books = db.relationship('Book', back_populates='seller', cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<Seller {self.id}: {self.name} (User ID: {self.user_id})>'
