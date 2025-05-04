@@ -4,19 +4,19 @@ This document outlines the CRUD operations, corresponding API endpoints, and rol
 
 ---
 
-## 7. Rating Model (`Rating`)
+## 2. Seller Model (`Seller`)
 
-**Base Path:** `/api/v1/ratings` (or nested)
+**Base Path:** `/api/v1/sellers`
 
-| Operation  | HTTP Method | Endpoint                   | Action                                      | Allowed Roles              | Notes                                                                   |
-| :--------- | :---------- | :------------------------- | :------------------------------------------ | :------------------------- | :---------------------------------------------------------------------- |
-| **Create** | `POST`      | `/books/{book_id}/ratings` | Add a rating/review for a specific book.    | User, Seller               | Requires authentication. `user_id` is current user. Prevent duplicates. |
-| **Read**   | `GET`       | `/books/{book_id}/ratings` | List all ratings for a specific book.       | Guest, User, Seller, Admin | Public listing.                                                         |
-| **Read**   | `GET`       | `/users/me/ratings`        | List ratings submitted by the current user. | User, Seller, Admin        | Requires authentication.                                                |
-| **Read**   | `GET`       | `/users/{user_id}/ratings` | List ratings submitted by a specific user.  | Admin                      |                                                                         |
-| **Read**   | `GET`       | `/{rating_id}`             | Get a specific rating.                      | Admin                      | User/Seller can view their own.                                         |
-| **Update** | `PATCH`     | `/{rating_id}`             | Update a rating/review.                     | User, Seller, Admin        | User/Seller can only update their own. Admins can update any.           |
-| **Delete** | `DELETE`    | `/{rating_id}`             | Delete a rating/review.                     | User, Seller, Admin        | User/Seller can only delete their own. Admins can delete any.           |
+| Operation  | HTTP Method | Endpoint       | Action                                        | Allowed Roles              | Notes                                                       |
+| :--------- | :---------- | :------------- | :-------------------------------------------- | :------------------------- | :---------------------------------------------------------- |
+| **Create** | `POST`      | `/`            | Create a seller profile for the current user. | User (Authenticated)       | Links to `User`, potentially changes user role to 'Seller'. |
+| **Read**   | `GET`       | `/`            | List all sellers (paginated).                 | Guest, User, Seller, Admin | Public listing.                                             |
+| **Read**   | `GET`       | `/me`          | Get the current user's seller profile.        | Seller, Admin              | Requires authentication.                                    |
+| **Read**   | `GET`       | `/{seller_id}` | Get a specific seller's profile.              | Guest, User, Seller, Admin | Public profile view.                                        |
+| **Update** | `PATCH`     | `/me`          | Update the current user's seller profile.     | Seller                     | Requires authentication. Can only update their own profile. |
+| **Update** | `PATCH`     | `/{seller_id}` | Update any seller's profile.                  | Admin                      |                                                             |
+| **Delete** | `DELETE`    | `/{seller_id}` | Delete a seller profile.                      | Admin                      | Consider implications for associated books and user role.   |
 
 ---
 
@@ -27,4 +27,3 @@ This document outlines the CRUD operations, corresponding API endpoints, and rol
 - **Relationships:** Creating/updating resources like `Book` will need logic to handle linking/unlinking related entities (Authors, Categories).
 - **Data Validation:** Input data for `POST` and `PATCH` requests must be validated.
 - **Error Handling:** Implement standard HTTP status codes for errors (400, 401, 403, 404, 500).
-- **Average Rating:** The `Book.rating` field should ideally be updated automatically via triggers or application logic whenever a `Rating` is added, updated, or deleted.
