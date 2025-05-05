@@ -8,31 +8,32 @@ from ..utils.security import hash_password, verify_password, generate_referral_c
 class User(db.Model):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
-    full_name = Column(String(100), nullable=False)
-    email = Column(String(120), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), default='customer', nullable=False)
-    balance = Column(Numeric(10, 2), default=Decimal('0.00'), nullable=False)
-    referral_code = Column(String(6), unique=True, nullable=False)
-    referred_by = Column(Integer, ForeignKey('users.id'), nullable=True)
-    total_referred = Column(Integer, default=0, nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    last_login = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(50), default='customer', nullable=False)
+    balance = db.Column(db.Numeric(10, 2), default=Decimal('0.00'), nullable=False)
+    referral_code = db.Column(db.String(6), unique=True, nullable=False)
+    referred_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    total_referred = db.Column(db.Integer, default=0, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    last_login = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    vouchers = relationship('Voucher', back_populates='user')
-    seller_profile = relationship('Seller', back_populates='user', uselist=False, cascade="all, delete-orphan")
-    
+    # --- Relationships ---
+    vouchers = db.relationship('Voucher', back_populates='user')
+    books_for_sale = db.relationship('Book', back_populates='user', lazy='dynamic', cascade="all, delete-orphan")
+    ratings = db.relationship('Rating', back_populates='user', cascade="all, delete-orphan")
 
-    referrer = relationship(
+    referrer = db.relationship(
         'User',
         remote_side=[id],
         back_populates='referred_users',
         foreign_keys=[referred_by]
     )
-    
-    referred_users = relationship(
+
+    referred_users = db.relationship(
         'User',
         back_populates='referrer',
         foreign_keys=[referred_by]

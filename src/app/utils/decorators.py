@@ -51,4 +51,4 @@ def role_required(allowed_roles: List[str]):
 # Contoh implementasi spesifik
 seller_required = role_required([UserRoles.SELLER.value])
 customer_required = role_required([UserRoles.CUSTOMER.value])
-# admin_required = role_required([UserRoles.ADMIN.value])
+admin_required = role_required([UserRoles.ADMIN.value])

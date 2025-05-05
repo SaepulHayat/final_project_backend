@@ -17,6 +17,17 @@ class Category(db.Model):
     __table_args__ = (
         UniqueConstraint('name', name='uq_category_name'),
     )
+    
+    def to_dict(self, include_books=False): #For retrieveng and creating data. `include_books=True` is used when calling list of books that have corresponding category.
+        """Returns a simple dictionary representation of the category."""
+        data = {
+            'id': self.id,
+            'name': self.name
+        }
+        if include_books:
+            data['books'] = [book.to_simple_dict() for book in self.books]
+        return data
+        
 
     def __repr__(self):
         return f'<Category {self.id}: {self.name}>'

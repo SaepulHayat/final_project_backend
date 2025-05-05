@@ -118,9 +118,9 @@ def validate_login_input(data: Dict[str, str]) -> Optional[Dict[str, str]]:
 
     return errors if errors else None
 
-def validate_category_input(data: Dict[str, str], category_id: Optional[int] = None) -> Optional[Dict[str, str]]:
-    """Validasi input untuk membuat atau memperbarui kategori."""
-    from ..model.category import Category # Import here to avoid circular dependency
+
+def validate_publisher_input(data: Dict[str, str], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui publisher."""
     errors: Dict[str, str] = {}
 
     if not data:
@@ -128,19 +128,10 @@ def validate_category_input(data: Dict[str, str], category_id: Optional[int] = N
 
     name = data.get('name', '').strip()
 
-    if not name:
-        errors['name'] = "Category name is required"
-    elif len(name) > 100:
-        errors['name'] = "Category name must not exceed 100 characters"
-    else:
-        # Check uniqueness only if name is provided and valid so far
-        # Note: Uniqueness check is also valuable here for immediate feedback,
-        # but the service layer should perform the definitive check before commit.
-        query = Category.query.filter(Category.name == name)
-        if category_id: # Exclude self during update
-            query = query.filter(Category.id != category_id)
-        existing_category = query.first()
-        if existing_category:
-            errors['name'] = f"Category name '{name}' already exists"
+    if not is_update or ('name' in data and name):
+        if not name:
+            errors['name'] = "Publisher name is required"
+        elif len(name) > 255:
+            errors['name'] = "Publisher name must not exceed 255 characters"
 
     return errors if errors else None
