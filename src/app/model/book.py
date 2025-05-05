@@ -44,6 +44,7 @@ class Book(db.Model):
 
     def to_dict(self, include_categories=True):
         """Returns a detailed dictionary representation of the book."""
+        user_city = self.user.location.city if self.user and self.user.location else None
         data = {
             'id': self.id,
             'title': self.title,
@@ -54,20 +55,21 @@ class Book(db.Model):
             'description': self.description,
             'rating': float(self.rating) if self.rating is not None else None,
             'quantity': self.quantity,
-            'price': self.price,
+            'price': float(self.price) if self.price is not None else None, # Corrected price conversion
             'discount_percent': self.discount_percent,
             'user_name': self.user.full_name if self.user else None,
-            'discount_percent': self.discount_percent,
+            # Removed duplicate discount_percent
             'user_id': self.user_id,
-            'location': self.user.location.to_dict() if self.user and self.user.location else None,
+            'location': user_city,
             'image_url_1': self.image_url_1,
             'image_url_2': self.image_url_2,
             'image_url_3': self.image_url_3,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None, # Added timestamp
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None, # Added timestamp
         }
         if include_categories and self.categories:
-            data['categories'] = [category.to_simple_dict() for category in self.categories]
+            # Corrected category serialization call
+            data['categories'] = [category.to_dict() for category in self.categories]
         else:
             data['categories'] = []
 
@@ -75,17 +77,15 @@ class Book(db.Model):
 
     def to_simple_dict(self):
         """Returns a simpler dictionary representation of the book."""
-
+        # Removed user_city line
         return {
             'id': self.id,
             'title': self.title,
             'author_name': self.author.full_name if self.author else None,
             'image_url_1': self.image_url_1,
             'rating': float(self.rating) if self.rating is not None else None,
-            'price': self.price,
+            'price': float(self.price) if self.price is not None else None, # Corrected price conversion
             'discount_percent': self.discount_percent,
-            'user_id': self.user_id,
-            'location': self.user.location.to_dict() if self.user and self.user.location else None,
             'user_name': self.user.full_name if self.user else None,
         }
 

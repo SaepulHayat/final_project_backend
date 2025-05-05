@@ -1,81 +1,92 @@
-# Guide: Implementing Book CRUD Operations
+# Guide: Implementing Book CRUD Operations (v2)
 
-This guide details how to implement Create, Read, Update, and Delete (CRUD) operations for the `Book` model, following a layered architecture.
+This guide details how to implement Create, Read, Update, and Delete (CRUD) operations for the `Book` model, following a layered architecture, reflecting the merge of Seller functionality into the User model.
 
 **References:**
 
-- Models: `book.py`, `author.py`, `publisher.py`, `category.py`, `rating.py`, `seller.py`, `user.py`, `book_category_table.py`
-- General CRUD Structure (Example): `crud_guide.md` (for Seller)
+- Models: `book.py`, `author.py`, `publisher.py`, `category.py`, `rating.py`, `user.py`, `location.py`, `book_category_table.py`
 - Example Implementation Style: `guide_category.md`
 
 ## 1. Model Layer (`src/app/model/book.py`)
 
-- **Existing Model:** The `Book` model includes fields like `title`, `description`, `price`, `quantity`, `discount_percent`, image URLs, `rating` (to store the calculated average), and foreign keys (`publisher_id`, `seller_id`, `author_id`).
+- **Existing Model:** The `Book` model includes fields like `title`, `description`, `price`, `quantity`, `discount_percent`, image URLs, `rating` (to store the calculated average), and foreign keys (`publisher_id`, `author_id`, `user_id`). The `user_id` links a book to the user who listed it for sale.
 - **Relationships:**
-  - Many-to-One: `publisher`, `author`, `seller`
+  - Many-to-One: `publisher`, `author`, `user` (linking to the user selling the book)
   - Many-to-Many: `categories` (via `book_category_table`)
   - One-to-Many: `ratings` (with `cascade="all, delete-orphan"`)
 - **Responsibilities:** Defines the data structure, relationships, and database mapping for books.
-- **Serialization:** Add `to_dict()` for detailed views and `to_simple_dict()` for lists. These now use the stored `rating` field.
+- **Serialization:** Add `to_dict()` for detailed views and `to_simple_dict()` for lists, aligned with the provided models.
 
   ```python
-  # Inside Book class in book.py
+  # Inside Book class in book.py (Reflecting actual model structure)
 
-  # Note: calculate_average_rating method removed from model.
-  # The Book.rating field (Numeric(3, 2)) will be updated by the BookService.
+  # Note: The Book.rating field (Numeric(3, 2)) will be updated by the BookService
+  # or potentially a RatingService, as described later.
 
-  def to_dict(self, include_ratings=False):
+  def to_dict(self, include_categories=True):
+      """Returns a detailed dictionary representation of the book."""
+      # Get user's city from the related location, if available
+      user_city = self.user.location.city if self.user and self.user.location else None
       data = {
           'id': self.id,
           'title': self.title,
+          'author_id': self.author_id,
+          'author_name': self.author.full_name if self.author else None,
+          'publisher_id': self.publisher_id,
+          'publisher_name': self.publisher.name if self.publisher else None,
           'description': self.description,
-          # Use the stored average rating field
-          'average_rating': float(self.rating) if self.rating is not None else None,
+          'rating': float(self.rating) if self.rating is not None else None,
           'quantity': self.quantity,
           'price': float(self.price) if self.price is not None else None,
           'discount_percent': self.discount_percent,
-          'final_price': float(self.price * (1 - self.discount_percent / 100)) if self.price is not None else None,
+          'user_id': self.user_id, # ID of the user selling the book
+          'user_name': self.user.full_name if self.user else None, # Name of the user
+          'location': user_city, # City of the user selling the book
           'image_url_1': self.image_url_1,
           'image_url_2': self.image_url_2,
           'image_url_3': self.image_url_3,
+          # Timestamps (assuming they exist in the model, based on book.py structure)
           'created_at': self.created_at.isoformat() if self.created_at else None,
           'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-          # Include simplified related data (assuming simple dict methods exist)
-          'author': self.author.to_simple_dict() if self.author else None,
-          'publisher': self.publisher.to_simple_dict() if self.publisher else None,
-          'seller': self.seller.to_simple_dict() if self.seller else None, # Assuming Seller model has to_simple_dict
-          'categories': [category.to_simple_dict() for category in self.categories] if self.categories else [],
-          'rating_count': len(self.ratings) # Count of individual ratings
       }
-      # Optionally include full rating details
-      if include_ratings:
-           # Assuming Rating model has to_dict
-          data['ratings'] = [rating.to_dict() for rating in self.ratings]
+      # Include category details
+      # Note: book.py calls category.to_simple_dict(), but category.py only has to_dict().
+      # Assuming category.to_dict() provides the simple representation needed here.
+      # Ideally, align the method names or implementations in the actual code.
+      if include_categories and self.categories:
+          data['categories'] = [category.to_dict() for category in self.categories]
+      else:
+          data['categories'] = []
+
       return data
 
   def to_simple_dict(self):
-      # A lighter version for lists, using the stored rating
+      """Returns a simpler dictionary representation of the book."""
+      # Note: user_city is not included in the actual book.py's to_simple_dict
       return {
           'id': self.id,
           'title': self.title,
-          'average_rating': float(self.rating) if self.rating is not None else None,
+          'author_name': self.author.full_name if self.author else None,
+          'image_url_1': self.image_url_1,
+          # Use the stored average rating field
+          'rating': float(self.rating) if self.rating is not None else None,
+          # Ensure price is converted correctly
           'price': float(self.price) if self.price is not None else None,
           'discount_percent': self.discount_percent,
-          'final_price': float(self.price * (1 - self.discount_percent / 100)) if self.price is not None else None,
-          'image_url_1': self.image_url_1, # Often include the primary image
-          'author_name': f"{self.author.first_name} {self.author.last_name}" if self.author else "N/A",
-          'seller_name': self.seller.name if self.seller else "N/A" # Assuming Seller model has name
+          'user_name': self.user.full_name if self.user else None, # Name of the user selling the book
       }
 
-  # Ensure Author, Publisher, Category, Seller, Rating models also have
-  # appropriate to_dict() / to_simple_dict() methods.
+  # Ensure Author, Publisher, Category, User, Rating models also have
+  # appropriate to_dict() methods as needed by the Book serialization.
+  # Note: Author model in author.py does not have to_simple_dict.
+  # Note: Publisher model in publisher.py *does* have to_simple_dict.
   ```
 
 ## 2. Utility Layer (`src/app/utils/`)
 
 - **Validators (`validators.py`):**
-  - Create `validate_book_input(data, is_update=False)`: (Content remains the same as previous version)
-    - **Checks (Create):** `title` (required, string), `price` (required, positive number), `quantity` (required, non-negative integer), `discount_percent` (optional, 0-100 integer), `description` (optional, string), `author_id` (optional, integer - check existence), `publisher_id` (optional, integer - check existence), `category_ids` (optional, list of integers - check existence). `seller_id` is usually derived from the logged-in user, not input data.
+  - Create `validate_book_input(data, is_update=False)`:
+    - **Checks (Create):** `title` (required, string), `price` (required, positive number), `quantity` (required, non-negative integer), `discount_percent` (optional, 0-100 integer), `description` (optional, string), `author_id` (optional, integer - check existence), `publisher_id` (optional, integer - check existence), `category_ids` (optional, list of integers - check existence). `user_id` is derived from the logged-in user context (JWT), not input data.
     - **Checks (Update):** Similar checks, but fields are optional. If provided, they must meet the constraints.
     - **Existence Checks:** Verify that provided `author_id`, `publisher_id`, and `category_ids` correspond to existing records in their respective tables.
     - Return a dictionary of errors if validation fails, otherwise `None`.
@@ -83,7 +94,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
   - Use existing `success_response`, `error_response`, `create_response`.
 - **Decorators (`decorators.py`):**
   - Use `@jwt_required()` for authenticated endpoints (Create, Update, Delete, Get My Books).
-  - Implement or use a role/permission checking decorator (e.g., `@roles_required` or custom logic).
+  - Implement or use a role/permission checking decorator (e.g., `@roles_required` or custom logic within the service/route) if needed to restrict actions based on `User.role`.
 
 ## 3. Service Layer (`src/app/services/book_service.py`)
 
@@ -100,8 +111,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
   from ..model.author import Author
   from ..model.publisher import Publisher
   from ..model.category import Category
-  from ..model.seller import Seller
-  from ..model.user import User # To get seller from user
+  from ..model.user import User # Import User model
   from ..model.rating import Rating # Needed for average calculation
   from ..utils.validators import validate_book_input
   from ..utils.response import success_response, error_response
@@ -112,7 +122,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
   class BookService:
 
       def _get_and_validate_related(self, data):
-          """Helper to fetch and validate related entities."""
+          """Helper to fetch and validate related entities (Author, Publisher, Categories)."""
           # (Content remains the same as previous version)
           related = {'author': None, 'publisher': None, 'categories': []}
           errors = {}
@@ -148,48 +158,44 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
           """
           Helper function to recalculate and update the average rating for a book.
           This should be called within the same transaction whenever a Rating
-          for this book is created, updated, or deleted.
+          for this book is created, updated, or deleted (likely from a RatingService).
           """
+          # (Content remains the same as previous version - uses Book.rating field)
           try:
               book = Book.query.get(book_id)
               if not book:
                   logger.warning(f"Attempted to update rating for non-existent book ID: {book_id}")
-                  return # Or raise an error if this case shouldn't happen
+                  return
 
-              # Calculate the average score using SQLAlchemy's avg function
-              # Coalesce ensures we get 0 if there are no ratings, preventing None
               avg_score_result = db.session.query(
                   func.coalesce(func.avg(Rating.score), 0)
               ).filter(Rating.book_id == book_id).scalar()
 
-              # Convert to Decimal for precise rounding (e.g., to 2 decimal places)
               avg_score_decimal = Decimal(str(avg_score_result))
-              # Round to 2 decimal places (matches Book.rating Numeric(3, 2))
               rounded_avg_score = avg_score_decimal.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-              book.rating = rounded_avg_score # Update the book's rating field
-              # No commit here - it's handled by the calling function's transaction
+              book.rating = rounded_avg_score
               logger.info(f"Updated average rating for Book ID {book_id} to {book.rating}")
           except Exception as e:
-              # Log the error but don't let it break the main operation if possible
               logger.error(f"Error updating average rating for Book ID {book_id}: {e}", exc_info=True)
-              # Depending on requirements, you might want to re-raise or handle differently
-              # Do NOT rollback here, let the calling function handle transaction management.
+              # Let the calling function handle transaction management.
 
       def create_book(self, data, user_id):
-          # (Steps 1-5 remain the same as previous version)
-          # 1. Get Seller Profile
+          # 1. Get User (who will be the seller/owner of the book)
           user = User.query.get(user_id)
-          if not user or not user.seller_profile:
-               return error_response("Seller profile not found for the current user.", error="forbidden", status_code=403)
-          seller = user.seller_profile
+          if not user:
+               # This case might be less likely if jwt_required worked, but good practice
+               return error_response("User not found.", error="unauthorized", status_code=401)
+          # Optional: Check if user role allows creating books (e.g., 'seller', 'admin')
+          # if user.role not in ['seller', 'admin']:
+          #    return error_response("User role not permitted to create books.", error="forbidden", status_code=403)
 
           # 2. Validate Input Data
           errors = validate_book_input(data)
           if errors:
               return error_response("Validation failed", errors=errors, status_code=400)
 
-          # 3. Fetch and Validate Related Entities
+          # 3. Fetch and Validate Related Entities (Author, Publisher, Categories)
           related_entities, related_errors = self._get_and_validate_related(data)
           if related_errors:
                errors = (errors or {}) | related_errors
@@ -200,15 +206,15 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               title=data['title'],
               description=data.get('description'),
               quantity=data['quantity'],
-              price=Decimal(str(data['price'])),
+              price=Decimal(str(data['price'])), # Ensure conversion to Decimal
               discount_percent=data.get('discount_percent', 0),
               image_url_1=data.get('image_url_1'),
               image_url_2=data.get('image_url_2'),
               image_url_3=data.get('image_url_3'),
-              seller=seller,
+              user_id=user.id, # Assign the logged-in user's ID
               author=related_entities['author'],
               publisher=related_entities['publisher'],
-              rating=None # Initialize rating - will be updated if ratings are added later
+              rating=None # Initialize rating
           )
 
           # 5. Add Categories
@@ -218,10 +224,9 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
           # 6. Add to Session and Commit
           try:
               db.session.add(new_book)
-              # Note: Average rating is not updated here as no ratings exist yet.
-              # It will be updated when the first rating is added.
               db.session.commit()
-              logger.info(f"Book created: ID {new_book.id}, Title '{new_book.title}', Seller ID {seller.id}")
+              logger.info(f"Book created: ID {new_book.id}, Title '{new_book.title}', User ID {user.id}")
+              # Use the corrected to_dict method for the response
               return success_response("Book created successfully", data=new_book.to_dict(), status_code=201)
           except IntegrityError as e:
               db.session.rollback()
@@ -233,42 +238,43 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               return error_response("Failed to create book", error=str(e), status_code=500)
 
       def get_all_books(self, args):
-          # (Content remains the same, uses Book.rating for sorting if specified)
+          # (Uses Book.rating for sorting if specified)
           page = args.get('page', 1, type=int)
           per_page = args.get('per_page', 12, type=int)
           search_term = args.get('search')
           author_id = args.get('author_id', type=int)
           publisher_id = args.get('publisher_id', type=int)
           category_id = args.get('category_id', type=int)
-          seller_id = args.get('seller_id', type=int)
+          user_id_filter = args.get('user_id', type=int) # Filter by user who listed the book
           min_price = args.get('min_price', type=float)
           max_price = args.get('max_price', type=float)
           sort_by = args.get('sort_by', 'created_at')
           order = args.get('order', 'desc')
 
+          # Eager load related entities including the user
           query = Book.query.options(
               joinedload(Book.author),
               joinedload(Book.publisher),
-              joinedload(Book.seller),
+              joinedload(Book.user).joinedload(User.location), # Load user and their location
               subqueryload(Book.categories)
           )
 
-          # Filtering (same as before)
+          # Filtering
           if search_term: query = query.filter(Book.title.ilike(f'%{search_term}%'))
           if author_id: query = query.filter(Book.author_id == author_id)
           if publisher_id: query = query.filter(Book.publisher_id == publisher_id)
           if category_id: query = query.filter(Book.categories.any(Category.id == category_id))
-          if seller_id: query = query.filter(Book.seller_id == seller_id)
+          if user_id_filter: query = query.filter(Book.user_id == user_id_filter) # Filter by user ID
           if min_price is not None: query = query.filter(Book.price >= Decimal(str(min_price)))
           if max_price is not None: query = query.filter(Book.price <= Decimal(str(max_price)))
 
-          # Sorting
+          # Sorting (remains the same, uses Book.rating)
           order_direction = db.desc if order.lower() == 'desc' else db.asc
           if sort_by == 'price':
               query = query.order_by(order_direction(Book.price))
           elif sort_by == 'title':
               query = query.order_by(order_direction(Book.title))
-          elif sort_by == 'rating': # Sort by the stored rating field
+          elif sort_by == 'rating':
              query = query.order_by(order_direction(Book.rating))
           else: # Default sort by creation date
               query = query.order_by(order_direction(Book.created_at))
@@ -278,6 +284,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               return success_response(
                   "Books retrieved successfully",
                   data={
+                      # Use the corrected to_simple_dict method
                       "books": [book.to_simple_dict() for book in paginated_books.items],
                       "total": paginated_books.total,
                       "pages": paginated_books.pages,
@@ -290,43 +297,49 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               return error_response("Failed to retrieve books", error=str(e), status_code=500)
 
       def get_book_by_id(self, book_id):
-          # (Content remains the same, uses stored rating in to_dict)
+           # Eager load related entities including the user and location
            book = Book.query.options(
               joinedload(Book.author),
               joinedload(Book.publisher),
-              joinedload(Book.seller),
+              joinedload(Book.user).joinedload(User.location), # Load user and location
               joinedload(Book.categories),
-              # subqueryload(Book.ratings).joinedload(Rating.user) # Optionally load ratings
-          ).get(book_id)
+              # Optionally load ratings and the user who made the rating
+              # subqueryload(Book.ratings).joinedload(Rating.user)
+           ).get(book_id)
 
            if not book:
                return error_response("Book not found", error="not_found", status_code=404)
-           return success_response("Book found", data=book.to_dict(include_ratings=True), status_code=200)
+           # Use the corrected to_dict method
+           # Pass include_ratings=True if you decide to load and include them
+           return success_response("Book found", data=book.to_dict(), status_code=200)
 
-      def get_books_by_seller(self, seller_id, args):
-           # (Content remains the same)
-           args['seller_id'] = seller_id
+      def get_books_by_user(self, owner_user_id, args):
+           """Gets books listed by a specific user."""
+           # Set the user_id filter in the args and call get_all_books
+           args = args.copy() # Avoid modifying the original args dict
+           args['user_id'] = owner_user_id
            return self.get_all_books(args)
 
-      def update_book(self, book_id, data, user_id):
-          # (Content remains mostly the same, no rating update needed here unless rating itself is directly editable, which is unlikely)
-          book = Book.query.options(joinedload(Book.seller)).get(book_id)
+      def update_book(self, book_id, data, current_user_id):
+          # Eager load the user relationship for the authorization check
+          book = Book.query.options(joinedload(Book.user)).get(book_id)
           if not book:
               return error_response("Book not found", error="not_found", status_code=404)
 
-          # Authorization Check
-          user = User.query.get(user_id)
-          if not user: return error_response("User not found.", error="unauthorized", status_code=401)
-          is_owner = book.seller and book.seller.user_id == user_id
-          is_admin = user.role == 'admin'
+          # Authorization Check: Ensure the current user owns the book or is an admin
+          user = User.query.get(current_user_id)
+          if not user: return error_response("User not found.", error="unauthorized", status_code=401) # Should not happen with jwt_required
+          is_owner = book.user_id == current_user_id
+          is_admin = user.role == 'admin' # Assuming 'admin' role exists
           if not (is_owner or is_admin):
+              logger.warning(f"Unauthorized attempt to update Book ID {book_id} by User ID {current_user_id}")
               return error_response("You are not authorized to update this book.", error="forbidden", status_code=403)
 
           # Validate Input Data
           errors = validate_book_input(data, is_update=True)
           if errors: return error_response("Validation failed", errors=errors, status_code=400)
 
-          # Fetch and Validate Related Entities
+          # Fetch and Validate Related Entities (Author, Publisher, Categories)
           related_entities, related_errors = self._get_and_validate_related(data)
           if related_errors:
                errors = (errors or {}) | related_errors
@@ -334,15 +347,17 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
           # Update fields
           updated = False
-          # (Loop through data.items() remains the same as previous version)
+          # (Loop through data.items() remains the same)
           for key, value in data.items():
-              if key in ['category_ids', 'author_id', 'publisher_id']: continue # Handled below/separately
+              if key in ['category_ids', 'author_id', 'publisher_id']: continue
               if key == 'price' and value is not None: value = Decimal(str(value))
+              # Prevent changing the owner (user_id) via this method
+              if key == 'user_id': continue
               if hasattr(book, key) and getattr(book, key) != value:
                   setattr(book, key, value)
                   updated = True
 
-          # Update relationships (Author, Publisher, Categories) - same logic as before
+          # Update relationships (Author, Publisher, Categories)
           if 'author_id' in data:
                new_author = related_entities['author'] if data['author_id'] else None
                if book.author != new_author:
@@ -354,18 +369,22 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
                    book.publisher = new_publisher
                    updated = True
           if 'category_ids' in data:
-              book.categories.clear()
-              if related_entities['categories']:
-                  book.categories.extend(related_entities['categories'])
-              updated = True
+              # Efficiently update many-to-many: replace current with new set
+              current_category_ids = {cat.id for cat in book.categories}
+              new_category_ids = set(data.get('category_ids', []))
+
+              if current_category_ids != new_category_ids:
+                  book.categories = related_entities['categories'] # Assign the list of Category objects
+                  updated = True
 
           if not updated:
               return error_response("No changes detected in the provided data.", error="no_change", status_code=400)
 
           try:
-              # Note: Average rating is not updated here. It's updated via Rating CRUD operations.
+              # Rating is not updated here; handled by Rating CRUD operations.
               db.session.commit()
-              logger.info(f"Book updated: ID {book.id}, Title '{book.title}' by User ID {user_id}")
+              logger.info(f"Book updated: ID {book.id}, Title '{book.title}' by User ID {current_user_id}")
+              # Use the corrected to_dict method for the response
               return success_response("Book updated successfully", data=book.to_dict(), status_code=200)
           except IntegrityError as e:
               db.session.rollback()
@@ -376,27 +395,28 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               logger.error(f"Error updating book {book_id}: {e}", exc_info=True)
               return error_response("Failed to update book", error=str(e), status_code=500)
 
-      def delete_book(self, book_id, user_id):
-          # (Content remains the same)
-          book = Book.query.options(joinedload(Book.seller)).get(book_id)
+      def delete_book(self, book_id, current_user_id):
+          # Eager load user for authorization check
+          book = Book.query.options(joinedload(Book.user)).get(book_id)
           if not book: return error_response("Book not found", error="not_found", status_code=404)
 
           # Authorization Check
-          user = User.query.get(user_id)
+          user = User.query.get(current_user_id)
           if not user: return error_response("User not found.", error="unauthorized", status_code=401)
-          is_owner = book.seller and book.seller.user_id == user_id
+          is_owner = book.user_id == current_user_id
           is_admin = user.role == 'admin'
           if not (is_owner or is_admin):
+              logger.warning(f"Unauthorized attempt to delete Book ID {book_id} by User ID {current_user_id}")
               return error_response("You are not authorized to delete this book.", error="forbidden", status_code=403)
 
           try:
               book_title = book.title
               # Associated ratings are cascade deleted by DB relationship setting.
-              # No need to call _update_book_average_rating as the book is gone.
               db.session.delete(book)
               db.session.commit()
-              logger.info(f"Book deleted: ID {book_id}, Title '{book_title}' by User ID {user_id}")
-              return success_response("Book deleted successfully", status_code=200)
+              logger.info(f"Book deleted: ID {book_id}, Title '{book_title}' by User ID {current_user_id}")
+              # Return 204 No Content on successful deletion is common practice
+              return success_response("Book deleted successfully", status_code=200) # Or return status_code=204
           except Exception as e:
               db.session.rollback()
               logger.error(f"Error deleting book {book_id}: {e}", exc_info=True)
@@ -408,15 +428,13 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
 - **Create Blueprint and Import Services/Utils:**
 
-  - (Content remains the same as the previous version - routes call the service methods which now incorporate the updated rating logic indirectly).
-
   ```python
   from flask import Blueprint, request, jsonify
   from flask_jwt_extended import jwt_required, get_jwt_identity
   from ..services.book_service import BookService
   from ..utils.response import create_response
-  from ..utils.decorators import roles_required # Assuming roles_required exists
-  from ..utils.roles import UserRoles # Assuming UserRoles enum exists
+  # from ..utils.decorators import roles_required # Optional: if using role decorator
+  # from ..utils.roles import UserRoles # Optional: if using roles enum
   import logging
 
   logger = logging.getLogger(__name__)
@@ -425,18 +443,19 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
   @book_bp.route('/', methods=['POST'])
   @jwt_required()
-  # @roles_required(UserRoles.SELLER)
+  # Optional: Add role check here or in service if needed
+  # @roles_required(UserRoles.SELLER, UserRoles.ADMIN)
   def create_book_route():
-      user_id = get_jwt_identity()
-      from ..model.user import User # Temp import
-      user = User.query.get(user_id)
-      if not user or not user.seller_profile:
-           return create_response(status="error", message="Only sellers can create books.", error="forbidden"), 403
+      user_id = get_jwt_identity() # Get user ID from JWT token
+      # No need to check for seller_profile anymore
 
       data = request.get_json()
       if not data: return create_response(status="error", message="Request body must be JSON"), 400
+
+      # Pass user_id to the service method
       result = book_service.create_book(data, user_id)
       status_code = result.get('status_code', 500)
+      # Use create_response helper for consistent formatting
       return create_response(**result), status_code
 
   @book_bp.route('/', methods=['GET'])
@@ -454,25 +473,25 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
   @book_bp.route('/me', methods=['GET'])
   @jwt_required()
-  # @roles_required(UserRoles.SELLER)
+  # Optional: Add role check if only certain roles should list their books
   def get_my_books_route():
-      user_id = get_jwt_identity()
-      from ..model.user import User # Temp import
-      user = User.query.get(user_id)
-      if not user or not user.seller_profile:
-           return create_response(status="error", message="Seller profile not found.", error="forbidden"), 403
-      seller_id = user.seller_profile.id
+      user_id = get_jwt_identity() # Get the current user's ID
+      # No need to check for seller_profile
+
       args = request.args
-      result = book_service.get_books_by_seller(seller_id, args)
+      # Call the renamed service method
+      result = book_service.get_books_by_user(user_id, args)
       status_code = result.get('status_code', 500)
       return create_response(**result), status_code
 
   @book_bp.route('/<int:book_id>', methods=['PATCH', 'PUT'])
   @jwt_required()
   def update_book_route(book_id):
-      user_id = get_jwt_identity()
+      user_id = get_jwt_identity() # Get current user's ID for authorization check
       data = request.get_json()
       if not data: return create_response(status="error", message="Request body must be JSON"), 400
+
+      # Pass book_id, data, and current_user_id to the service
       result = book_service.update_book(book_id, data, user_id)
       status_code = result.get('status_code', 500)
       return create_response(**result), status_code
@@ -480,31 +499,40 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
   @book_bp.route('/<int:book_id>', methods=['DELETE'])
   @jwt_required()
   def delete_book_route(book_id):
-      user_id = get_jwt_identity()
+      user_id = get_jwt_identity() # Get current user's ID for authorization check
+
+      # Pass book_id and current_user_id to the service
       result = book_service.delete_book(book_id, user_id)
       status_code = result.get('status_code', 500)
+
+      # Handle 204 No Content response for successful deletion
       if result.get('status') == 'success' and status_code == 200:
-          return '', 204
+          # Optionally return 204 directly
+          # return '', 204
+          # Or keep using create_response if preferred
+          return create_response(**result), status_code
+      elif result.get('status') == 'success' and status_code == 204:
+           return '', 204 # Handle explicit 204 from service
+
+      # Return error response
       return create_response(**result), status_code
 
-  # Register blueprint in app factory
+  # Register blueprint in app factory (in __init__.py or equivalent)
   # from .routes.book_route import book_bp
   # app.register_blueprint(book_bp)
   ```
 
 ## 5. Key Considerations & Error Handling
 
-- **Role-Based Access Control (RBAC):** (Content remains the same)
-- **Input Validation:** (Content remains the same)
-- **Relationship Management:** (Content remains the same)
+- **Role-Based Access Control (RBAC):** Use the `User.role` field and potentially a decorator (`@roles_required`) or checks within service methods to control who can create, update, or delete books (e.g., allow users with 'admin' role or specific 'seller' role if defined, or just the book owner). The current implementation allows the owner or an 'admin' to update/delete. Creation might be open to any logged-in user or restricted by role.
+- **Input Validation:** `validate_book_input` is crucial for data integrity. Ensure it covers all necessary fields and constraints.
+- **Relationship Management:** Handle fetching and assigning related entities (Author, Publisher, Categories) correctly during create/update. Ensure `user_id` is assigned correctly based on the logged-in user.
 - **Average Rating (`Book.rating`):**
-  - The `Book.rating` field (type `Numeric(3, 2)`) is now used to **store** the calculated average rating.
-  - The calculation and update logic resides in the `BookService._update_book_average_rating(book_id)` helper function.
-  - **Crucially, `_update_book_average_rating` must be called by the service layer logic responsible for managing `Rating` entities (e.g., a hypothetical `RatingService`) immediately after a `Rating` associated with the book is successfully created, updated, or deleted.** This ensures the `Book.rating` field stays synchronized. The call should happen within the same database transaction as the rating change.
-  - The `to_dict` and `to_simple_dict` methods now read directly from `self.rating`.
-  - Sorting by rating in `get_all_books` now uses the stored `Book.rating` column.
-- **Error Handling Strategy:** (Content remains the same)
-- **Pagination & Filtering:** (Content remains the same)
-- **Serialization (`to_dict`, `to_simple_dict`):** (Content remains the same, but now reads stored rating)
-
-This updated guide reflects the strategy of calculating the average rating in the service layer and storing it in the `Book.rating` field, making the model simpler and centralizing the update logic. Remember to implement the calls to `_update_book_average_rating` in the appropriate places within your `Rating` management logic.
+  - The `Book.rating` field stores the calculated average.
+  - The `BookService._update_book_average_rating(book_id)` helper calculates the average.
+  - **Crucially, this helper must be called by the service layer logic responsible for managing `Rating` entities (e.g., a `RatingService`) immediately after a `Rating` associated with the book is successfully created, updated, or deleted.** This keeps `Book.rating` synchronized.
+  - Serialization methods (`to_dict`, `to_simple_dict`) now read directly from `self.rating`.
+  - Sorting by rating uses the stored `Book.rating` column.
+- **Error Handling Strategy:** Use consistent error responses (`error_response`) with appropriate status codes (400, 401, 403, 404, 409, 500) and clear error messages/codes. Log errors effectively. Use `try...except` blocks with `db.session.rollback()` for database operations.
+- **Pagination & Filtering:** Implement robust pagination and filtering in `get_all_books` (and by extension, `get_books_by_user`) using request arguments. Filter by `user_id` when appropriate.
+- **Serialization (`to_dict`, `to_simple_dict`):** Ensure serialization methods accurately reflect the model structure and provide the necessary data for different API responses (detailed view vs. list view). Be mindful of inconsistencies between model definitions and serialization methods (e.g., `category.to_simple_dict()` call vs. definition).

@@ -21,6 +21,16 @@ class Rating(db.Model):
         db.Index('ix_rating_user_id', 'user_id'),
         db.Index('ix_rating_book_id', 'book_id'),
     )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'user_name': self.user.full_name if self.user else None,
+            'book_id': self.book_id,
+            'score': self.score,
+            'text': self.text,
+        }
 
     def __repr__(self):
         return f'<Rating {self.id} by User {self.user_id} for Book {self.book_id} - Score: {self.score}>'
