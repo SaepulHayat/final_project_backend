@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..services.category_service import CategoryService
 from ..utils.response import create_response
-from ..utils.decorators import jwt_required, role_required
+from ..utils.decorators import role_required
 from ..utils.roles import UserRoles
 import logging
 

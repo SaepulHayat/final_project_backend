@@ -178,3 +178,30 @@ def validate_category_input(data: Dict[str, str], is_update: bool = False) -> Op
 
 
     return errors if errors else None
+def validate_rating_input(data: Dict[str, any], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui rating."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    # Score validation
+    if 'score' in data:
+        score = data.get('score')
+        if not isinstance(score, int):
+            errors['score'] = "Score must be an integer"
+        elif not (1 <= score <= 5):
+            errors['score'] = "Score must be between 1 and 5"
+    elif not is_update: # Score is required for create
+        errors['score'] = "Score is required"
+
+    # Text validation
+    if 'text' in data:
+        text = data.get('text')
+        if text is not None: # Allow text to be explicitly set to None or empty string
+            if not isinstance(text, str):
+                errors['text'] = "Text must be a string"
+            elif len(text) > 1000: # Max length for rating text
+                errors['text'] = "Text must not exceed 1000 characters"
+
+    return errors if errors else None

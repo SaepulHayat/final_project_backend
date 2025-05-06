@@ -2,9 +2,9 @@ from functools import wraps
 from typing import Callable, List, Any
 from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
-from src.app.model.user import User
-from src.app.utils.roles import UserRoles
-from src.app.model.blacklist_token import BlacklistToken
+from ..model.user import User
+from ..utils.roles import UserRoles
+from ..model.blacklist_token import BlacklistToken
 import logging
 
 logger = logging.getLogger(__name__)
