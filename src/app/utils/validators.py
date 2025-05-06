@@ -174,7 +174,7 @@ def validate_category_input(data: Dict[str, str], is_update: bool = False) -> Op
             errors['name'] = "Category name must not exceed 100 characters"
     # If it's an update and 'name' is provided but empty after strip
     elif is_update and 'name' in data and not name:
-         errors['name'] = "Category name cannot be empty"
+        errors['name'] = "Category name cannot be empty"
 
 
     return errors if errors else None

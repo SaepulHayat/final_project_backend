@@ -14,7 +14,7 @@ class Location(db.Model):
     name = db.Column(db.String(100), nullable=True)
     address = db.Column(db.String(255), nullable=True)
     zip_code = db.Column(db.String(15), nullable=True, index=True)
-    city_id = db.Column(db.Integer, db.ForeignKey('cities.id'), nullable=False, index=True)
+    city_id = db.Column(db.Integer, db.ForeignKey('cities.id'), nullable=True, index=True)
 
     # --- Relationships ---
     city = db.relationship('City', back_populates='locations')
