@@ -1,4 +1,5 @@
 from ..model.author import Author
+from ..model.book import Book
 from ..extensions import db
 from ..utils.validators import validate_author_input
 from ..utils.response import success_response, error_response # Or handle errors via exceptions
@@ -76,10 +77,33 @@ error_out=False)
         if not author:
             return error_response("Author not found", error="not_found")
 
-        # Implement pagination for books if needed
-        # For now, return all books associated with the author
-        books = [book.to_simple_dict() for book in author.books.all()] # Use .all() to execute the dynamic query
-        return success_response("Books by author retrieved", data={"books": books})
+        # Extract pagination parameters from request args
+        page = args.get('page', 1, type=int)
+        per_page = args.get('per_page', 10, type=int) # Default to 10 books per page
+
+        # Paginate the dynamic relationship query
+        # author.books is the base query for books related to this author
+        paginated_books = author.books.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        # Serialize the books for the current page
+        # Assuming Book model has a to_simple_dict() method
+        books_data = [book.to_simple_dict() for book in paginated_books.items]
+
+        # Return paginated results
+        return success_response(
+            "Books by author retrieved successfully",
+            data={
+                "books": books_data,
+                "total": paginated_books.total,
+                "pages": paginated_books.pages,
+                "current_page": paginated_books.page,
+                "per_page": paginated_books.per_page
+            }
+        )
 
 
     def update_author(self, author_id, data):
