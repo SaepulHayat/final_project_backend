@@ -205,3 +205,32 @@ def validate_rating_input(data: Dict[str, any], is_update: bool = False) -> Opti
                 errors['text'] = "Text must not exceed 1000 characters"
 
     return errors if errors else None
+
+def validate_city_input(data: Dict[str, any], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui city."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    name = data.get('name', '').strip()
+    state_id = data.get('state_id')
+
+    # Name validation
+    if not is_update or ('name' in data and name):
+        if not name:
+            errors['name'] = "City name is required"
+        elif len(name) > 100: # Matches model definition
+            errors['name'] = "City name must not exceed 100 characters"
+    elif is_update and 'name' in data and not name:
+        errors['name'] = "City name cannot be empty"
+
+    # State ID validation
+    if not is_update or ('state_id' in data and state_id is not None):
+        if state_id is None:
+            errors['state_id'] = "State ID is required"
+        elif not isinstance(state_id, int):
+            errors['state_id'] = "State ID must be an integer"
+        # Further validation (checking if state_id exists in DB) is done in the service layer
+
+    return errors if errors else None

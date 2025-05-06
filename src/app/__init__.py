@@ -2,7 +2,7 @@ from flask import Flask
 from .config import config_by_name
 from .extensions import init_db
 from .model import *
-from .routes import author_bp, category_bp, publisher_bp
+from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp
 from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
 import os
 
@@ -23,9 +23,12 @@ def create_app():
     app.cli.add_command(seed_db_command)
     
     # Register blueprints
+    app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
+    app.register_blueprint(user_bp, url_prefix='/api/v1/users')
     app.register_blueprint(author_bp, url_prefix='/api/v1/authors')
     app.register_blueprint(category_bp, url_prefix='/api/v1/categories')
     app.register_blueprint(publisher_bp, url_prefix='/api/v1/publishers')
+    app.register_blueprint(city_bp, url_prefix='/api/v1/cities')
     app.register_blueprint(book_ratings_bp)
     app.register_blueprint(user_ratings_bp)
     app.register_blueprint(ratings_bp)
