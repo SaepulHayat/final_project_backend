@@ -20,9 +20,11 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True, index=True)
 
     # --- Relationships ---
     vouchers = db.relationship('Voucher', back_populates='user')
+    location = db.relationship('Location', back_populates='users', foreign_keys=[location_id])
     books_for_sale = db.relationship('Book', back_populates='user', lazy='dynamic', cascade="all, delete-orphan")
     ratings = db.relationship('Rating', back_populates='user', cascade="all, delete-orphan")
     location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True)
@@ -60,8 +62,8 @@ class User(db.Model):
     def verify_password(self, password):
         return verify_password(self.password_hash, password)
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_location=False):
+        data = {
             'id': self.id,
             'full_name': self.full_name,
             'email': self.email,
@@ -72,6 +74,12 @@ class User(db.Model):
             'total_referred': self.total_referred,
             'last_login': self.last_login.isoformat() if self.last_login else None
         }
+        if include_location and self.location:
+            data['location'] = self.location.to_dict()
+        elif self.location:
+            data['city_name'] = self.location.city.name if self.location.city else None
+
+        return data
 
     def update_last_login(self):
         self.last_login = datetime.utcnow()

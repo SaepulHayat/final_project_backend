@@ -42,6 +42,22 @@ class Book(db.Model):
 
     )
 
+    def get_seller_location_info(self):
+        """Helper method to safely get seller's location details."""
+        if not self.user or not self.user.location or not self.user.location.city:
+            return None, None, None
+
+        city = self.user.location.city
+        state = city.state
+        country = state.country if state else None
+
+        return (
+            city.name if city else None,
+            state.name if state else None,
+            country.name if country else None
+        )
+
+
     def to_dict(self, include_categories=True):
         """Returns a detailed dictionary representation of the book."""
         user_city = self.user.location.city if self.user and self.user.location else None
@@ -58,9 +74,12 @@ class Book(db.Model):
             'price': float(self.price) if self.price is not None else None, # Corrected price conversion
             'discount_percent': self.discount_percent,
             'user_name': self.user.full_name if self.user else None,
-            # Removed duplicate discount_percent
             'user_id': self.user_id,
-            'location': user_city,
+            'seller_location': {
+                            'city': city_name,
+                            'state': state_name,
+                            'country': country_name,
+                        },
             'image_url_1': self.image_url_1,
             'image_url_2': self.image_url_2,
             'image_url_3': self.image_url_3,
@@ -77,7 +96,7 @@ class Book(db.Model):
 
     def to_simple_dict(self):
         """Returns a simpler dictionary representation of the book."""
-        # Removed user_city line
+        city_name, _, _ = self.get_seller_location_info() # Only need city for simple view
         return {
             'id': self.id,
             'title': self.title,
@@ -87,6 +106,7 @@ class Book(db.Model):
             'price': float(self.price) if self.price is not None else None, # Corrected price conversion
             'discount_percent': self.discount_percent,
             'user_name': self.user.full_name if self.user else None,
+            'seller_city': city_name,
         }
 
     def __repr__(self):

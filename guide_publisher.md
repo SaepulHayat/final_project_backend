@@ -6,7 +6,6 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
 - Publisher Model: `publisher.py`
 - Book Model (for relationship): `book.py`
-- CRUD Plan: `crud_guide.md`
 
 ## 1. Model Layer (`src/app/model/publisher.py`)
 

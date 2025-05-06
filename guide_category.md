@@ -6,7 +6,6 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
 - Category Model: `category.py`
 - Book Model (for relationship): `book.py`
-- CRUD Plan: `crud_plan_3.md`
 
 ## 1. Model Layer (`src/app/model/category.py`)
 
