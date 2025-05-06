@@ -1,19 +1,19 @@
-from decimal import Decimal, ROUND_HALF_UP # For price validation and rating
-from flask_jwt_extended import get_jwt_identity # To get current user ID
-from sqlalchemy import func # For average calculation
-from sqlalchemy.orm import joinedload, subqueryload # For eager loading
+from decimal import Decimal, ROUND_HALF_UP
+from flask_jwt_extended import get_jwt_identity 
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload, subqueryload
 from sqlalchemy.exc import IntegrityError
 from ..extensions import db
 from ..model.book import Book
 from ..model.author import Author
 from ..model.publisher import Publisher
 from ..model.category import Category
-from ..model.user import User # Import User model
-from ..model.rating import Rating # Needed for average calculation
-from ..model.location import Location # Import Location model
-from ..model.city import City # Import City model
-from ..model.state import State # Import State model
-from ..model.country import Country # Import Country model
+from ..model.user import User
+from ..model.rating import Rating
+from ..model.location import Location
+from ..model.city import City
+from ..model.state import State
+from ..model.country import Country
 from ..utils.validators import validate_book_input
 from ..utils.response import success_response, error_response
 import logging
@@ -189,7 +189,7 @@ class BookService:
         elif sort_by == 'title':
             query = query.order_by(order_direction(Book.title))
         elif sort_by == 'rating':
-           query = query.order_by(order_direction(Book.rating))
+            query = query.order_by(order_direction(Book.rating))
         else: # Default sort by creation date
             query = query.order_by(order_direction(Book.created_at))
 

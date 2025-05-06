@@ -285,9 +285,9 @@ def validate_country_input(data: Dict[str, str], is_update: bool = False) -> Opt
 
     # Code validation (optional but validated if provided)
     if 'code' in data and code is not None and not code: # if "code": ""
-         errors['code'] = "Country code cannot be an empty string if provided, or omit the key to keep it unchanged/null."
+        errors['code'] = "Country code cannot be an empty string if provided, or omit the key to keep it unchanged/null."
     elif code is not None and len(code) > 10: # Matches model definition
-         errors['code'] = "Country code must not exceed 10 characters"
+        errors['code'] = "Country code must not exceed 10 characters"
 
 
     return errors if errors else None
@@ -314,24 +314,24 @@ def validate_location_input(data: Dict[str, any], is_update: bool = False) -> Op
     # address validation
     if not is_update or ('address' in data and address):
         if not address and not is_update: # Address is required for create, but optional for update if not provided
-             errors['address'] = "Address is required for creation"
+            errors['address'] = "Address is required for creation"
         elif address and len(address) > 255: # Matches model definition
             errors['address'] = "Address must not exceed 255 characters"
     elif is_update and 'address' in data and not address: # Allow setting address to empty string/None on update
-         pass # Handled by service layer normalization
+        pass # Handled by service layer normalization
 
     # zip_code validation
     if 'zip_code' in data and zip_code and len(zip_code) > 15: # Matches model definition
         errors['zip_code'] = "Zip code must not exceed 15 characters"
     elif is_update and 'zip_code' in data and not zip_code: # Allow setting zip_code to empty string/None on update
-         pass # Handled by service layer normalization
+        pass # Handled by service layer normalization
 
 
     # name validation
     if 'name' in data and name and len(name) > 100: # Matches model definition
         errors['name'] = "Name must not exceed 100 characters"
     elif is_update and 'name' in data and not name: # Allow setting name to empty string/None on update
-         pass # Handled by service layer normalization
+        pass # Handled by service layer normalization
 
 
     return errors if errors else None
@@ -359,23 +359,23 @@ def validate_book_input(data: Dict[str, any], is_update: bool = False) -> Option
     if 'title' in data:
         title = data.get('title', '').strip()
         if not title and not is_update:
-             errors['title'] = "Title is required for creation"
+            errors['title'] = "Title is required for creation"
         elif title and len(title) > 255:
             errors['title'] = "Title must not exceed 255 characters"
         elif is_update and 'title' in data and not title:
-             errors['title'] = "Title cannot be empty"
+            errors['title'] = "Title cannot be empty"
 
 
     if 'description' in data:
         description = data.get('description')
         if description is not None and not isinstance(description, str):
-             errors['description'] = "Description must be a string or null"
+            errors['description'] = "Description must be a string or null"
 
 
     if 'price' in data:
         price = data.get('price')
         if price is None and not is_update:
-             errors['price'] = "Price is required for creation"
+            errors['price'] = "Price is required for creation"
         elif price is not None:
             try:
                 price_decimal = Decimal(str(price))
@@ -388,7 +388,7 @@ def validate_book_input(data: Dict[str, any], is_update: bool = False) -> Option
     if 'quantity' in data:
         quantity = data.get('quantity')
         if quantity is None and not is_update:
-             errors['quantity'] = "Quantity is required for creation"
+            errors['quantity'] = "Quantity is required for creation"
         elif quantity is not None:
             if not isinstance(quantity, int):
                 errors['quantity'] = "Quantity must be an integer"
@@ -437,17 +437,17 @@ def validate_book_input(data: Dict[str, any], is_update: bool = False) -> Option
                 valid_category_ids.append(cat_id)
 
             if 'category_ids' not in errors and valid_category_ids:
-                 categories = Category.query.filter(Category.id.in_(valid_category_ids)).all()
-                 if len(categories) != len(set(valid_category_ids)):
-                     found_ids = {cat.id for cat in categories}
-                     missing_ids = [cid for cid in valid_category_ids if cid not in found_ids]
-                     errors['category_ids'] = f"Categories with IDs {missing_ids} not found."
+                categories = Category.query.filter(Category.id.in_(valid_category_ids)).all()
+                if len(categories) != len(set(valid_category_ids)):
+                    found_ids = {cat.id for cat in categories}
+                    missing_ids = [cid for cid in valid_category_ids if cid not in found_ids]
+                    errors['category_ids'] = f"Categories with IDs {missing_ids} not found."
             elif 'category_ids' not in errors and not valid_category_ids and category_ids:
-                 # Case where category_ids is an empty list, which is valid
-                 pass
+                # Case where category_ids is an empty list, which is valid
+                pass
             elif 'category_ids' not in errors and not category_ids and 'category_ids' in data:
-                 # Case where category_ids is explicitly provided as empty list
-                 pass
+                # Case where category_ids is explicitly provided as empty list
+                pass
 
 
     # Image URL validations (optional, just check type if provided)

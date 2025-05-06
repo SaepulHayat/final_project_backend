@@ -203,7 +203,7 @@ class RatingService:
         if not rating:
             return error_response("Rating not found", error="not_found", status_code=404)
 
-         # Authorization Check: User/Seller can only delete their own, Admin can delete any
+        # Authorization Check: User/Seller can only delete their own, Admin can delete any
         if current_user_role != UserRoles.ADMIN and rating.user_id != current_user_id:
             return error_response("Forbidden: You can only delete your own ratings", error="forbidden", status_code=403)
 

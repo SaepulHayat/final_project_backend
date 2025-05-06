@@ -68,33 +68,24 @@ ratings_bp = Blueprint('ratings', __name__, url_prefix='/api/v1/ratings')
 @ratings_bp.route('/<int:rating_id>', methods=['GET'])
 @jwt_required(optional=True) # Allow anonymous access if needed, or make required
 def get_rating_by_id_route(rating_id):
-    # According to plan, only Admin can get arbitrary rating ID directly.
-    # User/Seller view their own via /users/me/ratings.
-    # Let's enforce Admin-only for this specific endpoint.
-    # If public access is needed, remove/adjust role_required.
-    # This requires role_required to be applied *conditionally* or handled inside.
-    # Simpler approach: Make it Admin only via decorator.
-    # @role_required([UserRoles.ADMIN.value]) # Uncomment if strictly Admin only
-
-    # Alternative: Check role inside if decorator not flexible enough
     user_identity = get_jwt_identity()
     current_user_id = None
     current_user_role = None
     if user_identity:
-         current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity
-         # Fetch role based on ID - requires User model access
-         user = User.query.get(current_user_id)
-         if user:
-             current_user_role = UserRoles(user.role) # Convert string role to enum
+        current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity
+        # Fetch role based on ID - requires User model access
+        user = User.query.get(current_user_id)
+        if user:
+            current_user_role = UserRoles(user.role) # Convert string role to enum
 
     # If only Admin can access this endpoint:
     if not current_user_role or current_user_role != [UserRoles.ADMIN.value]:
-         # Check if the user is trying to access their own rating (if allowed by plan)
-         # rating = Rating.query.get(rating_id) # Need to fetch rating first
-         # if not rating or rating.user_id != current_user_id:
-         #      return create_response(status="error", message="Forbidden"), 403
-         # For now, assume only Admin as per plan's note on this specific endpoint
-         return create_response(status="error", message="Forbidden: Admin access required"), 403
+        # rating = Rating.query.get(rating_id) # Need to fetch rating first
+        # if not rating or rating.user_id != current_user_id:
+        # Check if the user is trying to access their own rating (if allowed by plan)
+        #      return create_response(status="error", message="Forbidden"), 403
+        # For now, assume only Admin as per plan's note on this specific endpoint
+        return create_response(status="error", message="Forbidden: Admin access required"), 403
 
     result = rating_service.get_rating_by_id(rating_id) # Pass user info if service needs it for checks
     status_code = result.get('status_code', 500)
@@ -108,7 +99,7 @@ def update_rating_route(rating_id):
     # Fetch user role to pass to service for authorization check
     user = User.query.get(current_user_id)
     if not user:
-         return create_response(status="error", message="User not found"), 404 # Should not happen if JWT is valid
+        return create_response(status="error", message="User not found"), 404 # Should not happen if JWT is valid
     current_user_role = UserRoles(user.role)
 
     data = request.get_json()
@@ -124,22 +115,14 @@ def update_rating_route(rating_id):
 def delete_rating_route(rating_id):
     user_identity = get_jwt_identity()
     current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity
-    # Fetch user role to pass to service for authorization check
     user = User.query.get(current_user_id)
     if not user:
-         return create_response(status="error", message="User not found"), 404
+        return create_response(status="error", message="User not found"), 404
     current_user_role = UserRoles(user.role)
 
     result = rating_service.delete_rating(rating_id, current_user_id, current_user_role)
     status_code = result.get('status_code', 500)
 
-    # Return 204 No Content on successful deletion
     if result.get('status') == 'success' and status_code == 200:
         return '', 204
     return create_response(**result), status_code
-
-# Register blueprints in app factory (e.g., in app/__init__.py)
-# from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
-# app.register_blueprint(book_ratings_bp)
-# app.register_blueprint(user_ratings_bp)
-# app.register_blueprint(ratings_bp)
