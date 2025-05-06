@@ -234,3 +234,32 @@ def validate_city_input(data: Dict[str, any], is_update: bool = False) -> Option
         # Further validation (checking if state_id exists in DB) is done in the service layer
 
     return errors if errors else None
+
+def validate_state_input(data: Dict[str, any], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui state."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    name = data.get('name', '').strip()
+    country_id = data.get('country_id')
+
+    # Name validation
+    if not is_update or ('name' in data and name):
+        if not name:
+            errors['name'] = "State name is required"
+        elif len(name) > 100: # Matches model definition
+            errors['name'] = "State name must not exceed 100 characters"
+    elif is_update and 'name' in data and not name:
+        errors['name'] = "State name cannot be empty"
+
+    # Country ID validation
+    if not is_update or ('country_id' in data and country_id is not None):
+        if country_id is None:
+            errors['country_id'] = "Country ID is required"
+        elif not isinstance(country_id, int):
+            errors['country_id'] = "Country ID must be an integer"
+        # Further validation (checking if country_id exists in DB) is done in the service layer
+
+    return errors if errors else None

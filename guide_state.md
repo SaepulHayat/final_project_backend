@@ -7,7 +7,6 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 - State Model: `state.py`
 - Country Model (for relationship): `country.py`
 - City Model (for relationship): `city.py`
-- Recommended Measures: `guide_state.md`
 
 ## 1. Model Layer (`src/app/model/state.py`)
 
