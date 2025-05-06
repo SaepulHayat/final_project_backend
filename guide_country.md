@@ -46,7 +46,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
 - **Decorators (`decorators.py`):**
   - Use `@jwt_required()` for authenticated endpoints.
-  - Use a role-checking decorator like `@roles_required(UserRoles.ADMIN)` for operations requiring Admin privileges (Create, Update, Delete).
+  - Use a role-checking decorator like `@role_required(UserRoles.ADMIN)` for operations requiring Admin privileges (Create, Update, Delete).
 
 ## 3. Service Layer (`src/app/services/country_service.py`)
 
@@ -309,7 +309,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
   from flask import Blueprint, request, jsonify
   from ..services.country_service import CountryService
   from ..utils.response import create_response
-  from ..utils.decorators import jwt_required, roles_required # Assuming roles_required exists from decorators.py
+  from ..utils.decorators import jwt_required, role_required # Assuming role_required exists from decorators.py
   from ..utils.roles import UserRoles # Assuming UserRoles enum exists
   import logging
 
@@ -320,7 +320,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
   @country_bp.route('/', methods=['POST'])
   @jwt_required()
-  @roles_required(UserRoles.ADMIN) # Admin role required
+  @role_required(UserRoles.ADMIN) # Admin role required
   def create_country_route():
       data = request.get_json()
       if not data:
@@ -354,7 +354,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
   @country_bp.route('/<int:country_id>', methods=['PATCH']) # Typically PATCH for partial updates
   @jwt_required()
-  @roles_required(UserRoles.ADMIN) # Admin role required
+  @role_required(UserRoles.ADMIN) # Admin role required
   def update_country_route(country_id):
       data = request.get_json()
       if not data:
@@ -365,7 +365,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
 
   @country_bp.route('/<int:country_id>', methods=['DELETE'])
   @jwt_required()
-  @roles_required(UserRoles.ADMIN) # Admin role required
+  @role_required(UserRoles.ADMIN) # Admin role required
   def delete_country_route(country_id):
       result = country_service.delete_country(country_id)
       status_code = result.get('status_code', 500)

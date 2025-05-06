@@ -156,3 +156,25 @@ def validate_author_input(data: Dict[str, str], is_update: bool = False) -> Opti
         errors['bio'] = "Bio must not exceed 500 characters"
 
     return errors if errors else None
+
+def validate_category_input(data: Dict[str, str], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui category."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    name = data.get('name', '').strip()
+
+    # For create or if name is provided in update
+    if not is_update or ('name' in data and name):
+        if not name:
+            errors['name'] = "Category name is required"
+        elif len(name) > 100: # Matches model definition
+            errors['name'] = "Category name must not exceed 100 characters"
+    # If it's an update and 'name' is provided but empty after strip
+    elif is_update and 'name' in data and not name:
+         errors['name'] = "Category name cannot be empty"
+
+
+    return errors if errors else None

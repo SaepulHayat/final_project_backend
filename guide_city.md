@@ -48,7 +48,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
   - Utilize the existing `success_response`, `error_response`, and `create_response` functions for consistent API responses.
 - **Decorators (`decorators.py`):**
   - Use `@jwt_required()` for endpoints requiring authentication (Create, Update, Delete).
-  - Use a role-checking decorator like `@roles_required(UserRoles.ADMIN)` (provided as `admin_required` in `decorators.py`) to enforce permissions. Based on `guide_city.md`, CUD operations require Admin, while Read is Public.
+  - Use a role-checking decorator like `@role_required(UserRoles.ADMIN)` (provided as `admin_required` in `decorators.py`) to enforce permissions. Based on `guide_city.md`, CUD operations require Admin, while Read is Public.
 
 ## 3. Service Layer (`src/app/services/city_service.py`)
 

@@ -63,7 +63,7 @@ def to_dict(self):
   - Utilize the existing `success_response`, `error_response`, and `create_response` functions.
 - **Decorators (`decorators.py`):**
   - Use `@jwt_required()` for endpoints requiring authentication (Create, Read Own, Update, Delete).
-  - Use or implement a role-checking decorator (e.g., `@roles_required(...)`) based on `crud_guide.md`. Note that specific ownership checks (User/Seller can only modify their own ratings) will often need to be handled within the service or route logic in addition to role checks.
+  - Use or implement a role-checking decorator (e.g., `@role_required(...)`) based on `crud_guide.md`. Note that specific ownership checks (User/Seller can only modify their own ratings) will often need to be handled within the service or route logic in addition to role checks.
 - **Roles (`roles.py`):**
   - Assume an enum `UserRoles` exists (e.g., `UserRoles.USER`, `UserRoles.SELLER`, `UserRoles.ADMIN`).
 
@@ -311,7 +311,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity # To get current user ID
 from ..services.rating_service import RatingService
 from ..utils.response import create_response
-from ..utils.decorators import roles_required # Assuming roles_required exists
+from ..utils.decorators import role_required # Assuming role_required exists
 from ..utils.roles import UserRoles # Assuming UserRoles enum exists
 from ..model.user import User # To get user role
 import logging
@@ -324,7 +324,7 @@ rating_service = RatingService() # Instantiate service
 
 @book_ratings_bp.route('/', methods=['POST'])
 @jwt_required()
-# roles_required(UserRoles.USER, UserRoles.SELLER) # Users and Sellers can rate
+# role_required(UserRoles.USER, UserRoles.SELLER) # Users and Sellers can rate
 def create_rating_route(book_id):
     user_identity = get_jwt_identity() # Get user info from JWT (e.g., user_id)
     user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity # Adjust based on JWT content
@@ -354,7 +354,7 @@ user_ratings_bp = Blueprint('user_ratings', __name__, url_prefix='/api/v1/users'
 
 @user_ratings_bp.route('/me/ratings', methods=['GET'])
 @jwt_required()
-# roles_required(UserRoles.USER, UserRoles.SELLER, UserRoles.ADMIN) # All
+# role_required(UserRoles.USER, UserRoles.SELLER, UserRoles.ADMIN) # All
 # authenticated users can see their own
 def get_my_ratings_route():
     user_identity = get_jwt_identity()
@@ -366,7 +366,7 @@ def get_my_ratings_route():
 
 @user_ratings_bp.route('/<int:user_id>/ratings', methods=['GET'])
 @jwt_required()
-@roles_required(UserRoles.ADMIN) # Only Admins can view others' ratings by user ID
+@role_required(UserRoles.ADMIN) # Only Admins can view others' ratings by user ID
 def get_user_ratings_route(user_id):
     args = request.args
     result = rating_service.get_ratings_by_user(user_id, args)
@@ -382,10 +382,10 @@ def get_rating_by_id_route(rating_id):
     # According to plan, only Admin can get arbitrary rating ID directly.
     # User/Seller view their own via /users/me/ratings.
     # Let's enforce Admin-only for this specific endpoint.
-    # If public access is needed, remove/adjust roles_required.
-    # This requires roles_required to be applied *conditionally* or handled inside.
+    # If public access is needed, remove/adjust role_required.
+    # This requires role_required to be applied *conditionally* or handled inside.
     # Simpler approach: Make it Admin only via decorator.
-    # @roles_required(UserRoles.ADMIN) # Uncomment if strictly Admin only
+    # @role_required(UserRoles.ADMIN) # Uncomment if strictly Admin only
 
     # Alternative: Check role inside if decorator not flexible enough
     user_identity = get_jwt_identity()
@@ -458,13 +458,13 @@ def delete_rating_route(rating_id):
 # app.register_blueprint(ratings_bp)
 ```
 
-- **Responsibilities:** Defines API endpoints according to the plan, handles HTTP requests/responses, parses data, extracts user identity from JWT, applies security decorators (`@jwt_required`, `@roles_required`), calls the `RatingService`, performs necessary authorization checks (especially fetching the user's role for service layer checks), and formats the final JSON output using `create_response`.
+- **Responsibilities:** Defines API endpoints according to the plan, handles HTTP requests/responses, parses data, extracts user identity from JWT, applies security decorators (`@jwt_required`, `@role_required`), calls the `RatingService`, performs necessary authorization checks (especially fetching the user's role for service layer checks), and formats the final JSON output using `create_response`.
 
 ## 5. Key Considerations & Error Handling
 
 - **Role-Based Access Control (RBAC) & Ownership:**
   - Create: Requires authentication (`@jwt_required`), allowed for Users and Sellers.
-  - Read (List): `/books/{book_id}/ratings` is public. `/users/me/ratings` requires authentication. `/users/{user_id}/ratings` requires Admin role (`@roles_required(UserRoles.ADMIN)`).
+  - Read (List): `/books/{book_id}/ratings` is public. `/users/me/ratings` requires authentication. `/users/{user_id}/ratings` requires Admin role (`@role_required(UserRoles.ADMIN)`).
   - Read (Specific): `/ratings/{rating_id}` requires Admin role according to the plan notes (or potentially owner access - clarify requirement).
   - Update/Delete: `/ratings/{rating_id}` requires authentication. The service layer must check if the `current_user.id` matches `rating.user_id` OR if `current_user.role` is Admin. Route layer fetches the current user's role and passes it to the service.
 - **Input Validation:**

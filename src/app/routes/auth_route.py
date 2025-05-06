@@ -14,61 +14,49 @@ auth_service = AuthService()
 @auth_bp.route('/register', methods=['POST'])
 def register():
     try:
-        data = request.get_json(silent=True) or request.form 
-        result = auth_service.register_user(data)
-        
-        print("DEBUG result type:", type(result), "value:", result)
+        data = request.get_json(silent=True)
+        if not data:
+            # Handle case where request body is not JSON or empty
+            return create_response(status="error", message="Request body must be JSON"), 400
 
-        # Atur status code berdasarkan result
-        if result.get('status') == 'success':
-            return jsonify(result), 201
-        else:
-            return jsonify(result), 400
+        result = auth_service.register_user(data)
+        # Get status code from service response, default to 500 if missing (though service should always provide it now)
+        status_code = result.get('status_code', 500)
+        # Use create_response to format the entire response based on the service result
+        return create_response(**result), status_code
 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        logger.error(f"Unexpected error in register: {e}", exc_info=True)
+        # Use create_response for consistent error formatting
+        return create_response(status="error", message="An unexpected error occurred during registration"), 500
 
 
 @auth_bp.route('/login', methods=['POST'])
-def login(): 
+def login():
     try:
-        data = request.get_json(silent=True) or request.form 
+        data = request.get_json(silent=True)
+        if not data:
+            return create_response(status="error", message="Request body must be JSON"), 400
+
         result = auth_service.login_user(data)
-        
-        
-        print("DEBUG result type:", type(result), "value:", result)
-        
-        if result['status'] == 'success':
-            return success_response(result['message'], result.get('data')), 200
-        else:
-            return error_response(result['message'], error=result.get('error')), 401
-    
+        status_code = result.get('status_code', 500) # Default to 500, but expect 200 or 401 from service
+        return create_response(**result), status_code
+
     except Exception as e:
-        logger.error("Login error: %s", str(e), exc_info=True)
-        return error_response("Internal server error"), 500
-    
-@auth_bp.route('/logout', methods=['POST'])  
-@jwt_required()  
-def logout():  
-    try:  
-        token = get_jwt()  
-        
-        result = auth_service.logout_user(token['jti'])  
-        
-        if result.get('status') == 'success':  
-            return create_response(  
-                status="success",   
-                message=result.get('message')  
-            ), 200
-        
-        return create_response(  
-            status="error",   
-            message=result.get('message', 'Logout failed')  
-        ), 401
-    
-    except Exception as e:  
-        logger.error(f"Unexpected error in logout: {e}", exc_info=True)  
-        return create_response(  
-            status="error",   
-            message="An unexpected error occurred"  
-        ), 500  
+        logger.error(f"Unexpected error in login: {e}", exc_info=True)
+        return create_response(status="error", message="An unexpected error occurred during login"), 500
+
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    try:
+        jwt_payload = get_jwt() # Renamed for clarity
+        jti = jwt_payload['jti']
+
+        result = auth_service.logout_user(jti)
+        status_code = result.get('status_code', 500) # Default to 500, but expect 200 or 500 from service
+        return create_response(**result), status_code
+
+    except Exception as e:
+        logger.error(f"Unexpected error in logout: {e}", exc_info=True)
+        return create_response(status="error", message="An unexpected error occurred during logout"), 500
