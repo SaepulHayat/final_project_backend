@@ -60,7 +60,7 @@ class Book(db.Model):
 
     def to_dict(self, include_categories=True):
         """Returns a detailed dictionary representation of the book."""
-        user_city = self.user.location.city if self.user and self.user.location else None
+        city_name, state_name, country_name = self.get_seller_location_info()
         data = {
             'id': self.id,
             'title': self.title,

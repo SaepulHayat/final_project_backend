@@ -14,7 +14,6 @@ book_ratings_bp = Blueprint('book_ratings', __name__, url_prefix='/api/v1/books/
 rating_service = RatingService() # Instantiate service
 
 @book_ratings_bp.route('/', methods=['POST'])
-@jwt_required()
 # role_required(UserRoles.USER, UserRoles.SELLER) # Users and Sellers can rate
 def create_rating_route(book_id):
     user_identity = get_jwt_identity() # Get user info from JWT (e.g., user_id)
@@ -44,8 +43,8 @@ def get_ratings_for_book_route(book_id):
 user_ratings_bp = Blueprint('user_ratings', __name__, url_prefix='/api/v1/users')
 
 @user_ratings_bp.route('/me/ratings', methods=['GET'])
-@jwt_required()
-# role_required(UserRoles.USER, UserRoles.SELLER, UserRoles.ADMIN) # All
+@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value]) # Users and Sellers can view their own ratings
+# role_required(UserRoles.USER, UserRoles.SELLER, [UserRoles.ADMIN.value]) # All
 # authenticated users can see their own
 def get_my_ratings_route():
     user_identity = get_jwt_identity()
@@ -56,8 +55,7 @@ def get_my_ratings_route():
     return create_response(**result), status_code
 
 @user_ratings_bp.route('/<int:user_id>/ratings', methods=['GET'])
-@jwt_required()
-@role_required(UserRoles.ADMIN) # Only Admins can view others' ratings by user ID
+@role_required([UserRoles.ADMIN.value]) # Only Admins can view others' ratings by user ID
 def get_user_ratings_route(user_id):
     args = request.args
     result = rating_service.get_ratings_by_user(user_id, args)
@@ -76,7 +74,7 @@ def get_rating_by_id_route(rating_id):
     # If public access is needed, remove/adjust role_required.
     # This requires role_required to be applied *conditionally* or handled inside.
     # Simpler approach: Make it Admin only via decorator.
-    # @role_required(UserRoles.ADMIN) # Uncomment if strictly Admin only
+    # @role_required([UserRoles.ADMIN.value]) # Uncomment if strictly Admin only
 
     # Alternative: Check role inside if decorator not flexible enough
     user_identity = get_jwt_identity()
@@ -90,7 +88,7 @@ def get_rating_by_id_route(rating_id):
              current_user_role = UserRoles(user.role) # Convert string role to enum
 
     # If only Admin can access this endpoint:
-    if not current_user_role or current_user_role != UserRoles.ADMIN:
+    if not current_user_role or current_user_role != [UserRoles.ADMIN.value]:
          # Check if the user is trying to access their own rating (if allowed by plan)
          # rating = Rating.query.get(rating_id) # Need to fetch rating first
          # if not rating or rating.user_id != current_user_id:
@@ -103,7 +101,6 @@ def get_rating_by_id_route(rating_id):
     return create_response(**result), status_code
 
 @ratings_bp.route('/<int:rating_id>', methods=['PATCH'])
-@jwt_required()
 # No specific role needed here, service layer handles ownership/admin check
 def update_rating_route(rating_id):
     user_identity = get_jwt_identity()
@@ -123,7 +120,6 @@ def update_rating_route(rating_id):
     return create_response(**result), status_code
 
 @ratings_bp.route('/<int:rating_id>', methods=['DELETE'])
-@jwt_required()
 # No specific role needed here, service layer handles ownership/admin check
 def delete_rating_route(rating_id):
     user_identity = get_jwt_identity()

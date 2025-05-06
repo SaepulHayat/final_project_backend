@@ -2,7 +2,7 @@ from flask import Flask
 from .config import config_by_name
 from .extensions import init_db
 from .model import *
-from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp
+from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp
 from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
 import os
 
@@ -33,7 +33,9 @@ def create_app():
     app.register_blueprint(book_ratings_bp)
     app.register_blueprint(user_ratings_bp)
     app.register_blueprint(ratings_bp)
-        
+    app.register_blueprint(country_bp, url_prefix='/api/v1/countries')
+    app.register_blueprint(location_bp, url_prefix='/api/v1/locations')
+
     @app.route('/')
     def index():
         return "setup flask is working!"

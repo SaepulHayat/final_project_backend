@@ -263,3 +263,75 @@ def validate_state_input(data: Dict[str, any], is_update: bool = False) -> Optio
         # Further validation (checking if country_id exists in DB) is done in the service layer
 
     return errors if errors else None
+
+def validate_country_input(data: Dict[str, str], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui country."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    name = data.get('name', '').strip()
+    code = data.get('code', '').strip() if data.get('code') is not None else None
+
+    # Name validation
+    if not is_update or ('name' in data and name):
+        if not name:
+            errors['name'] = "Country name is required"
+        elif len(name) > 100: # Matches model definition
+            errors['name'] = "Country name must not exceed 100 characters"
+    elif is_update and 'name' in data and not name:
+        errors['name'] = "Country name cannot be empty"
+
+    # Code validation (optional but validated if provided)
+    if 'code' in data and code is not None and not code: # if "code": ""
+         errors['code'] = "Country code cannot be an empty string if provided, or omit the key to keep it unchanged/null."
+    elif code is not None and len(code) > 10: # Matches model definition
+         errors['code'] = "Country code must not exceed 10 characters"
+
+
+    return errors if errors else None
+def validate_location_input(data: Dict[str, any], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui location."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    city_id = data.get('city_id')
+    address = data.get('address', '').strip()
+    zip_code = data.get('zip_code', '').strip()
+    name = data.get('name', '').strip()
+
+    # city_id validation
+    if not is_update or ('city_id' in data and city_id is not None):
+        if city_id is None:
+            errors['city_id'] = "City ID is required"
+        elif not isinstance(city_id, int):
+            errors['city_id'] = "City ID must be an integer"
+        # Existence check is done in the service layer
+
+    # address validation
+    if not is_update or ('address' in data and address):
+        if not address and not is_update: # Address is required for create, but optional for update if not provided
+             errors['address'] = "Address is required for creation"
+        elif address and len(address) > 255: # Matches model definition
+            errors['address'] = "Address must not exceed 255 characters"
+    elif is_update and 'address' in data and not address: # Allow setting address to empty string/None on update
+         pass # Handled by service layer normalization
+
+    # zip_code validation
+    if 'zip_code' in data and zip_code and len(zip_code) > 15: # Matches model definition
+        errors['zip_code'] = "Zip code must not exceed 15 characters"
+    elif is_update and 'zip_code' in data and not zip_code: # Allow setting zip_code to empty string/None on update
+         pass # Handled by service layer normalization
+
+
+    # name validation
+    if 'name' in data and name and len(name) > 100: # Matches model definition
+        errors['name'] = "Name must not exceed 100 characters"
+    elif is_update and 'name' in data and not name: # Allow setting name to empty string/None on update
+         pass # Handled by service layer normalization
+
+
+    return errors if errors else None
