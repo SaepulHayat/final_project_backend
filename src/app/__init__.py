@@ -36,6 +36,8 @@ def create_app():
     app.register_blueprint(country_bp, url_prefix='/api/v1/countries')
     app.register_blueprint(location_bp, url_prefix='/api/v1/locations')
 
+from .routes.book_route import book_bp
+    app.register_blueprint(book_bp)
     @app.route('/')
     def index():
         return "setup flask is working!"

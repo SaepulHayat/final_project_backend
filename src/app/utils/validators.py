@@ -335,3 +335,128 @@ def validate_location_input(data: Dict[str, any], is_update: bool = False) -> Op
 
 
     return errors if errors else None
+
+def validate_book_input(data: Dict[str, any], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui book."""
+    from ..model.author import Author
+    from ..model.publisher import Publisher
+    from ..model.category import Category
+    from decimal import Decimal
+
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    # Required fields for creation
+    if not is_update:
+        required_fields = ['title', 'price', 'quantity']
+        for field in required_fields:
+            if field not in data or data.get(field) is None:
+                errors[field] = f"{field.replace('_', ' ').title()} is required"
+
+    # Validate fields if they are present in data (for both create and update)
+    if 'title' in data:
+        title = data.get('title', '').strip()
+        if not title and not is_update:
+             errors['title'] = "Title is required for creation"
+        elif title and len(title) > 255:
+            errors['title'] = "Title must not exceed 255 characters"
+        elif is_update and 'title' in data and not title:
+             errors['title'] = "Title cannot be empty"
+
+
+    if 'description' in data:
+        description = data.get('description')
+        if description is not None and not isinstance(description, str):
+             errors['description'] = "Description must be a string or null"
+
+
+    if 'price' in data:
+        price = data.get('price')
+        if price is None and not is_update:
+             errors['price'] = "Price is required for creation"
+        elif price is not None:
+            try:
+                price_decimal = Decimal(str(price))
+                if price_decimal <= 0:
+                    errors['price'] = "Price must be a positive number"
+            except:
+                errors['price'] = "Price must be a valid number"
+
+
+    if 'quantity' in data:
+        quantity = data.get('quantity')
+        if quantity is None and not is_update:
+             errors['quantity'] = "Quantity is required for creation"
+        elif quantity is not None:
+            if not isinstance(quantity, int):
+                errors['quantity'] = "Quantity must be an integer"
+            elif quantity < 0:
+                errors['quantity'] = "Quantity must be a non-negative integer"
+
+
+    if 'discount_percent' in data:
+        discount_percent = data.get('discount_percent')
+        if discount_percent is not None:
+            if not isinstance(discount_percent, int):
+                errors['discount_percent'] = "Discount percent must be an integer"
+            elif not (0 <= discount_percent <= 100):
+                errors['discount_percent'] = "Discount percent must be between 0 and 100"
+
+
+    if 'author_id' in data and data['author_id'] is not None:
+        author_id = data['author_id']
+        if not isinstance(author_id, int):
+            errors['author_id'] = "Author ID must be an integer"
+        else:
+            # Check if author exists
+            if not Author.query.get(author_id):
+                errors['author_id'] = f"Author with ID {author_id} not found."
+
+    if 'publisher_id' in data and data['publisher_id'] is not None:
+        publisher_id = data['publisher_id']
+        if not isinstance(publisher_id, int):
+            errors['publisher_id'] = "Publisher ID must be an integer"
+        else:
+            # Check if publisher exists
+            if not Publisher.query.get(publisher_id):
+                errors['publisher_id'] = f"Publisher with ID {publisher_id} not found."
+
+    if 'category_ids' in data and data['category_ids'] is not None:
+        category_ids = data['category_ids']
+        if not isinstance(category_ids, list):
+            errors['category_ids'] = "Category IDs must be a list of integers"
+        else:
+            # Check if all category IDs are integers and exist
+            valid_category_ids = []
+            for cat_id in category_ids:
+                if not isinstance(cat_id, int):
+                    errors['category_ids'] = "Category IDs must be a list of integers"
+                    break
+                valid_category_ids.append(cat_id)
+
+            if 'category_ids' not in errors and valid_category_ids:
+                 categories = Category.query.filter(Category.id.in_(valid_category_ids)).all()
+                 if len(categories) != len(set(valid_category_ids)):
+                     found_ids = {cat.id for cat in categories}
+                     missing_ids = [cid for cid in valid_category_ids if cid not in found_ids]
+                     errors['category_ids'] = f"Categories with IDs {missing_ids} not found."
+            elif 'category_ids' not in errors and not valid_category_ids and category_ids:
+                 # Case where category_ids is an empty list, which is valid
+                 pass
+            elif 'category_ids' not in errors and not category_ids and 'category_ids' in data:
+                 # Case where category_ids is explicitly provided as empty list
+                 pass
+
+
+    # Image URL validations (optional, just check type if provided)
+    if 'image_url_1' in data and data['image_url_1'] is not None and not isinstance(data['image_url_1'], str):
+        errors['image_url_1'] = "Image URL 1 must be a string or null"
+    if 'image_url_2' in data and data['image_url_2'] is not None and not isinstance(data['image_url_2'], str):
+        errors['image_url_2'] = "Image URL 2 must be a string or null"
+    if 'image_url_3' in data and data['image_url_3'] is not None and not isinstance(data['image_url_3'], str):
+        errors['image_url_3'] = "Image URL 3 must be a string or null"
+
+
+    return errors if errors else None
