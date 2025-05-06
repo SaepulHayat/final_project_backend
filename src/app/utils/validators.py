@@ -135,3 +135,24 @@ def validate_publisher_input(data: Dict[str, str], is_update: bool = False) -> O
             errors['name'] = "Publisher name must not exceed 255 characters"
 
     return errors if errors else None
+
+def validate_author_input(data: Dict[str, str], is_update: bool = False) -> Optional[Dict[str, str]]:
+    """Validasi input untuk membuat atau memperbarui author."""
+    errors: Dict[str, str] = {}
+
+    if not data:
+        return {"general": "No data provided"}
+
+    full_name = data.get('full_name', '').strip()
+    bio = data.get('bio', '').strip()
+
+    if not is_update or ('full_name' in data and full_name):
+        if not full_name:
+            errors['full_name'] = "Full name is required"
+        elif len(full_name) > 100: # Assuming a max length for full_name
+            errors['full_name'] = "Full name must not exceed 100 characters"
+
+    if 'bio' in data and len(bio) > 500: # Assuming a max length for bio
+        errors['bio'] = "Bio must not exceed 500 characters"
+
+    return errors if errors else None
