@@ -244,6 +244,10 @@ class BookService:
         # Authorization Check: Ensure the current user owns the book or is an admin
         user = User.query.get(current_user_id)
         if not user: return error_response("User not found.", error="unauthorized", status_code=401) # Should not happen with jwt_required
+        logger.info(f"Authorization check for Book ID {book_id} by User ID {current_user_id}:")
+        logger.info(f"Book's owner user_id: {book.user_id} (type: {type(book.user_id)})")
+        logger.info(f"Current user_id from token: {current_user_id} (type: {type(current_user_id)})")
+        logger.info(f"Current user's role: {user.role}")
         is_owner = book.user_id == current_user_id
         is_admin = user.role == 'admin' # Assuming 'admin' role exists
         if not (is_owner or is_admin):
