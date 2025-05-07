@@ -1,5 +1,5 @@
 from ..model.category import Category
-from ..model.book import Book # Needed for querying books by category
+from ..model.book import Book
 from ..extensions import db
 from ..utils.validators import validate_category_input
 from ..utils.response import success_response, error_response # Or handle errors via exceptions

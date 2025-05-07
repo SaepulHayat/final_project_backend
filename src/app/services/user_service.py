@@ -1,6 +1,9 @@
 from flask import jsonify
-from ..model.user import User
 import logging
+
+from ..model.user import User
+""" from ..model.location import Location, City """
+from ..extensions import db
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,6 @@ class UserService:
                     "message": "User not found"
                 }), 404
 
-            # Ambil info user yang mengundang (referrer)
             referrer = None
             if user.referred_by:
                 referrer_user = User.query.get(user.referred_by)
@@ -74,3 +76,109 @@ class UserService:
                 "status": "error",
                 "message": "Failed to get balance"
             }), 500
+        
+    def get_all_users(self):
+        try:
+            users = User.query.all()
+            return jsonify({
+                "status": "success",
+                "data": [user.to_dict() for user in users]
+            }), 200
+        except Exception as e:
+            logger.error(f"Error getting all users: {str(e)}", exc_info=True)
+            return jsonify({
+                "status": "error",
+                "message": "Failed to get users"
+            }), 500
+
+    def get_user_by_id(self, user_id):
+        try:
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            return jsonify({"status": "success", "data": user.to_dict()}), 200
+        except Exception as e:
+            logger.error(f"Error getting user by ID: {str(e)}", exc_info=True)
+            return jsonify({
+                "status": "error",
+                "message": "Failed to get user"
+            }), 500
+
+    def update_user(self, user_id, data):
+        try:
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            # Update allowed fields
+            user.full_name = data.get('full_name', user.full_name)
+            user.email = data.get('email', user.email)
+
+            db.session.commit()
+            return jsonify({"status": "success", "message": "User updated successfully", "data": user.to_dict()}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating user: {str(e)}", exc_info=True)
+            return jsonify({"status": "error", "message": "Failed to update user"}), 500
+
+    def delete_user_by_id(self, user_id):
+        try:
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            db.session.delete(user)
+            db.session.commit()
+            return jsonify({"status": "success", "message": "User deleted successfully"}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error deleting user: {str(e)}", exc_info=True)
+            return jsonify({"status": "error", "message": "Failed to delete user"}), 500
+        
+    """ def update_location(self, user_id, data):
+        try:
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            city_id = data.get("city_id")
+            address = data.get("address")
+
+            if not city_id or not address:
+                return jsonify({
+                    "status": "error",
+                    "message": "Both city_id and address are required"
+                }), 400
+
+            city = City.query.get(city_id)
+            if not city:
+                return jsonify({"status": "error", "message": "City not found"}), 404
+
+            # If user already has a location, update it
+            if user.location:
+                user.location.city = city
+                user.location.address = address
+            else:
+                new_location = Location(
+                    user_id=user.id,
+                    city=city,
+                    address=address
+                )
+                db.session.add(new_location)
+                user.location = new_location
+
+            db.session.commit()
+            return jsonify({
+                "status": "success",
+                "message": "Location updated successfully",
+                "data": user.to_dict(include_location=True)
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating location: {str(e)}", exc_info=True)
+            return jsonify({
+                "status": "error",
+                "message": "Failed to update location"
+            }), 500 """
