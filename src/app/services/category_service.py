@@ -99,7 +99,6 @@ class CategoryService:
                     "total": paginated_books.total,
                     "pages": paginated_books.pages,
                     "current_page": paginated_books.page,
-                    # Use Category's to_simple_dict() (without books)
                     "category": category.to_simple_dict()
                 },
                 status_code=200
@@ -170,12 +169,6 @@ class CategoryService:
         category = Category.query.get(category_id)
         if not category:
             return error_response("Category not found", error="not_found", status_code=404)
-
-        # **Relationship Handling:** For many-to-many, deleting the category
-        # should automatically remove associations from the join table
-        # ('book_category_table') due to how SQLAlchemy handles relationships,
-        # *without* deleting the books themselves. No explicit check is needed
-        # to prevent deletion based on associated books, unlike a one-to-many.
 
         try:
             category_name = category.name # Store name for logging before deletion
