@@ -1,6 +1,6 @@
 from flask import Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..service.user_service import UserService
+from ..services.user_service import UserService
 
 user_bp = Blueprint('user', __name__)
 user_service = UserService()

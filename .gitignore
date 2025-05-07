@@ -43,5 +43,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+
 src/seed.py
 test
+
+final_project_backend.egg-info/
+

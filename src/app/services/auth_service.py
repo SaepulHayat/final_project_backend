@@ -7,11 +7,11 @@ import logging
 from ..model.user import User  
 from ..model.blacklist_token import BlacklistToken  
 from ..extensions import db  
-from ..util.roles import UserRoles  
-from ..util.validators import validate_register_input, validate_login_input  
-from ..util.security import hash_password, verify_password, generate_referral_code  
-from ..util.bonus import ReferralBonusService
-from ..util.response import create_response, error_response, success_response
+from ..utils.roles import UserRoles  
+from ..utils.validators import validate_register_input, validate_login_input  
+from ..utils.security import hash_password, verify_password, generate_referral_code  
+from ..utils.bonus import ReferralBonusService
+from ..utils.response import create_response, error_response, success_response
 
 logger = logging.getLogger(__name__)  
 
@@ -23,13 +23,14 @@ class AuthService:
             if validation_errors:
                 return error_response(
                     "Validation failed",
-                    errors=validation_errors
+                    errors=validation_errors,
+                    status_code=400 # Explicitly set 400
                 )
 
             # Cek email sudah terdaftar
             email = data['email'].lower()
             if User.query.filter_by(email=email).first():
-                return error_response("Email already registered")
+                return error_response("Email already registered", status_code=409) # Use 409 Conflict
 
             # Proses referral
             referring_user = None
@@ -38,7 +39,8 @@ class AuthService:
             if referral_code:
                 referring_user = User.query.filter_by(referral_code=referral_code).first()
                 if not referring_user:
-                    return error_response("Invalid referral code")
+                    # Referral code provided but not found
+                    return error_response("Invalid referral code", status_code=400) # Bad request
 
             # Buat user baru
             new_user = self._create_new_user(data, referring_user)
@@ -56,13 +58,15 @@ class AuthService:
                     if not success:
                         logger.error("Failed to process referral bonus")
                         db.session.rollback()
-                        return error_response("Referral bonus processing failed")
-                        
+                        # Internal server error during bonus processing
+                        return error_response("Referral bonus processing failed", status_code=500)
+
                 except Exception as e:
                     db.session.rollback()
                     logger.error(f"Referral bonus error: {str(e)}", exc_info=True)
-                    return error_response("Referral processing failed", error=str(e))
-            
+                    # Internal server error during bonus processing
+                    return error_response("Referral processing failed", error=str(e), status_code=500)
+
             db.session.commit()
 
             return success_response(
@@ -71,20 +75,18 @@ class AuthService:
                     "user_id": new_user.id,
                     "email": new_user.email,
                     "referral_code": new_user.referral_code
-                }
+                },
+                status_code=201 # Use 201 Created
             )
 
         except Exception as e:
             db.session.rollback()
             logger.error(f"Registration error: {str(e)}", exc_info=True)
-            return {
-                'status': 'error',
-                'message': "Registration failed",
-                'error': str(e)
-            }
+            # General internal server error during registration
+            return error_response("Registration failed", error=str(e), status_code=500)
 
 
-    def _create_new_user(self, data, referring_user=None):  
+    def _create_new_user(self, data, referring_user=None):
         """  
         Membuat instance user baru  
         """  
@@ -104,19 +106,22 @@ class AuthService:
             if validation_errors:
                 return error_response(
                     "Validation failed",
-                    errors=validation_errors
+                    errors=validation_errors,
+                    status_code=400 # Explicitly set 400
                 )
 
             # Cari user berdasarkan email
             email = data['email'].lower()
             user = User.query.filter_by(email=email).first()
-            
+
             if not user:
-                return error_response("User not found")
+                # User not found, treat as unauthorized
+                return error_response("Invalid credentials", error="user_not_found", status_code=401)
 
             # Verifikasi password
             if not user.verify_password(data['password']):
-                return error_response("Invalid credentials")
+                # Incorrect password, treat as unauthorized
+                return error_response("Invalid credentials", error="invalid_password", status_code=401)
 
             # Buat access dan refresh token
             access_token = create_access_token(identity=str(user.id))
@@ -136,17 +141,20 @@ class AuthService:
                     "refresh_token": refresh_token,
                     "user_id": user.id,
                     "email": user.email
-                }
+                },
+                status_code=200 # OK
             )
 
         except Exception as e:
+            logger.error(f"Login error: {str(e)}", exc_info=True) # Add logging
             return error_response(
                 "Login failed",
-                error=str(e)
+                error=str(e),
+                status_code=500 # Internal Server Error
             )
 
 
-    def logout_user(self, token):  
+    def logout_user(self, token):
         """  
         Proses logout dengan blacklist token  
         """  
@@ -156,11 +164,10 @@ class AuthService:
             db.session.add(blacklist_token)  
             db.session.commit()  
 
-            return success_response("Logout successful")  
-        
-        except Exception as e:  
-            db.session.rollback()  
-            logger.error(f"Logout error: {str(e)}", exc_info=True)  
-            return error_response("Logout failed", error=str(e))  
+            return success_response("Logout successful", status_code=200) # OK
 
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Logout error: {str(e)}", exc_info=True)
+            return error_response("Logout failed", error=str(e), status_code=500) # Internal Server Error
 

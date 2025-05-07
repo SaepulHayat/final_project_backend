@@ -48,7 +48,7 @@ class Voucher(db.Model):
     # Relasi transaksi
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     # used_transactions = relationship('Transaction', back_populates='applied_voucher')
-    user = relationship('User', back_populates='vouchers')
+    user = db.relationship('User', back_populates='vouchers')
 
 
     def __init__(self, *args, **kwargs):
