@@ -4,6 +4,7 @@ class UserRoles(Enum):
     SELLER = 'seller'
     CUSTOMER = 'customer'
 
+
     @classmethod
     def values(cls):
         return [role.value for role in cls]

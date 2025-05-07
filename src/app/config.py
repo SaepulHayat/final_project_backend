@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
+load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
     """Base configuration class. Contains default configuration settings."""
@@ -33,10 +34,18 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
         'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
+        'sqlite:///:memory:'
+    WTF_CSRF_ENABLED = False
 
 class ProductionConfig(Config):
     """Production configuration."""
+    """Production configuration."""
     DEBUG = False
+    TESTING = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
+        'sqlite:///' + os.path.join(os.path.dirname(basedir), 'test.db')    
     TESTING = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
         'sqlite:///' + os.path.join(os.path.dirname(basedir), 'test.db')    
@@ -51,9 +60,6 @@ class TestConfig(Config):
     TESTING = True  
 
 config_by_name = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'production': ProductionConfig,
     'default': DevelopmentConfig,
     'dev': DevelopmentConfig,
     'prod': ProductionConfig,

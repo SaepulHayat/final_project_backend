@@ -11,7 +11,7 @@ state_bp = Blueprint('states', __name__, url_prefix='/api/v1/states')
 state_service = StateService()
 
 @state_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def create_state_route():
     data = request.get_json()
     if not data:
@@ -45,7 +45,7 @@ def get_cities_by_state_route(state_id):
     return create_response(**result), status_code
 
 @state_bp.route('/<int:state_id>', methods=['PATCH']) # Using PATCH for partial updates
-@role_required([UserRoles.ADMIN.value]) # Assuming UserRoles is imported correctly
+@role_required([UserRoles.SELLER.value]) # Assuming UserRoles is imported correctly
 def update_state_route(state_id):
     data = request.get_json()
     if not data:
@@ -56,7 +56,7 @@ def update_state_route(state_id):
     return create_response(**result), status_code
 
 @state_bp.route('/<int:state_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value]) # Assuming UserRoles is imported correctly
+@role_required([UserRoles.SELLER.value]) # Assuming UserRoles is imported correctly
 def delete_state_route(state_id):
     result = state_service.delete_state(state_id)
     status_code = result.pop('status_code', 500)

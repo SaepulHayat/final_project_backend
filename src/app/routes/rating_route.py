@@ -43,8 +43,8 @@ def get_ratings_for_book_route(book_id):
 user_ratings_bp = Blueprint('user_ratings', __name__, url_prefix='/api/v1/users')
 
 @user_ratings_bp.route('/me/ratings', methods=['GET'])
-@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value]) # Users and Sellers can view their own ratings
-# role_required(UserRoles.USER, UserRoles.SELLER, [UserRoles.ADMIN.value]) # All
+@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value]) # Users and Sellers can view their own ratings
+# role_required(UserRoles.USER, UserRoles.SELLER, [UserRoles.SELLER.value]) # All
 # authenticated users can see their own
 def get_my_ratings_route():
     user_identity = get_jwt_identity()
@@ -55,7 +55,7 @@ def get_my_ratings_route():
     return create_response(**result), status_code
 
 @user_ratings_bp.route('/<int:user_id>/ratings', methods=['GET'])
-@role_required([UserRoles.ADMIN.value]) # Only Admins can view others' ratings by user ID
+@role_required([UserRoles.SELLER.value]) # Only Admins can view others' ratings by user ID
 def get_user_ratings_route(user_id):
     args = request.args
     result = rating_service.get_ratings_by_user(user_id, args)
@@ -79,7 +79,7 @@ def get_rating_by_id_route(rating_id):
             current_user_role = UserRoles(user.role) # Convert string role to enum
 
     # If only Admin can access this endpoint:
-    if not current_user_role or current_user_role != [UserRoles.ADMIN.value]:
+    if not current_user_role or current_user_role != [UserRoles.SELLER.value]:
         # rating = Rating.query.get(rating_id) # Need to fetch rating first
         # if not rating or rating.user_id != current_user_id:
         # Check if the user is trying to access their own rating (if allowed by plan)

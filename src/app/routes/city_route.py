@@ -11,7 +11,7 @@ city_bp = Blueprint('cities', __name__, url_prefix='/api/v1/cities')
 city_service = CityService()
 
 @city_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value])  # Assuming UserRoles is defined elsewhere
+@role_required([UserRoles.SELLER.value])  # Assuming UserRoles is defined elsewhere
 def create_city_route():
     """Creates a new city."""
     data = request.get_json()
@@ -43,7 +43,7 @@ def get_city_by_id_route(city_id):
     return create_response(**result), status_code
 
 @city_bp.route('/<int:city_id>', methods=['PATCH']) # PATCH is generally preferred for partial updates
-@role_required([UserRoles.ADMIN.value])  # Assuming UserRoles is defined elsewhere
+@role_required([UserRoles.SELLER.value])  # Assuming UserRoles is defined elsewhere
 def update_city_route(city_id):
     """Updates an existing city."""
     data = request.get_json()
@@ -55,7 +55,7 @@ def update_city_route(city_id):
     return create_response(**result), status_code
 
 @city_bp.route('/<int:city_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value])  # Assuming UserRoles is defined elsewhere
+@role_required([UserRoles.SELLER.value])  # Assuming UserRoles is defined elsewhere
 def delete_city_route(city_id):
     """Deletes a city."""
     result = city_service.delete_city(city_id)
