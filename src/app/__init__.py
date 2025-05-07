@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 import click
 from flask.cli import AppGroup
 from .config import config_by_name
@@ -18,6 +19,8 @@ def create_app():
     app.config.from_object(config_by_name[config_name])
     
     init_db(app)
+
+    CORS(app)
 
     # # Define the seed CLI group
     # seed_cli = AppGroup('seed', help='Commands for seeding the database.')
