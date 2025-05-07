@@ -1,321 +1,531 @@
-import random
-from datetime import datetime, timedelta
 from decimal import Decimal
-from faker import Faker
-from sqlalchemy import text
+from datetime import datetime
+
 from .extensions import db
-from src.app.model.author import Author
-from src.app.model.blacklist_token import BlacklistToken
-from src.app.model.book import Book
-from src.app.model.category import Category
-from src.app.model.city import City
-from src.app.model.country import Country
-from src.app.model.location import Location
-from src.app.model.publisher import Publisher
-from src.app.model.rating import Rating
-from src.app.model.state import State
-from src.app.model.user import User
-from src.app.model.voucher import Voucher, VoucherType # Ensure VoucherType is importable
-from src.app.utils.security import hash_password, generate_referral_code
+from .model.country import Country
+from .model.state import State
+from .model.city import City
+from .model.location import Location
+from .model.user import User
+from .model.category import Category
+from .model.author import Author
+from .model.publisher import Publisher
+from .model.book import Book
+from .model.rating import Rating
+# Assuming book_category_table is implicitly handled by SQLAlchemy relationships
+# If direct manipulation is needed, it would be imported from .model.book_category_table
 
-fake = Faker()
-fake_id = Faker(['id_ID']) # For Indonesian-specific data if needed
+# Utility for password hashing if not handled by model's @password.setter
+# from .utils.security import hash_password # User model handles this
 
-def clear_data():
-    """Clears all data from relevant tables."""
-    # app = create_app() # Ensure app context if run standalone outside Flask CLI
-    # with app.app_context():
-    # For MySQL/MariaDB to temporarily disable foreign key checks
-    # db.session.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
-    
-    # Order is important due to foreign key constraints
-    BlacklistToken.query.delete()
-    Rating.query.delete()
-    Voucher.query.delete()
-    # book_category_table is implicitly handled by Book.categories relationship
-    # If direct manipulation: db.session.execute(book_category_table.delete())
-    Book.query.delete()
-    Category.query.delete()
-    Author.query.delete()
-    Publisher.query.delete()
-    User.query.delete()
-    Location.query.delete()
-    City.query.delete()
-    State.query.delete()
-    Country.query.delete()
-    
-    db.session.commit()
-    
-    # For MySQL/MariaDB to re-enable foreign key checks
-    # db.session.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
-    print("All data cleared.")
+def seed_geographical_data():
+    """Seeds countries, states, and cities."""
+    print("Seeding geographical data...")
 
-def seed_countries(count=5):
-    countries = []
-    for _ in range(count):
-        try:
-            country = Country(name=fake.unique.country(), code=fake.unique.country_code())
+    # 1. Countries
+    countries_data = [
+        {"name": "Indonesia", "code": "ID"},
+        {"name": "United States", "code": "US"},
+        {"name": "Canada", "code": "CA"},
+        {"name": "United Kingdom", "code": "GB"},
+        {"name": "Germany", "code": "DE"},
+        {"name": "France", "code": "FR"},
+        {"name": "Japan", "code": "JP"},
+        {"name": "Australia", "code": "AU"},
+    ]
+    
+    created_countries = {}
+    for country_data in countries_data:
+        country = Country.query.filter_by(name=country_data["name"]).first()
+        if not country:
+            country = Country(name=country_data["name"], code=country_data["code"])
             db.session.add(country)
-            countries.append(country)
-        except Exception as e: # Catch potential unique constraint violation if Faker runs out
-            print(f"Skipping country due to error: {e}")
-            db.session.rollback()
-            fake.unique.clear() # Clear unique history for this provider
-            country = Country(name=fake.unique.country(), code=fake.unique.country_code()) # Try once more
-            db.session.add(country)
-            countries.append(country)
-    db.session.flush() # Flush to get IDs for relationships
-    return countries
+        created_countries[country_data["name"]] = country
+    db.session.flush() # Flush to get IDs for countries
 
-def seed_states(countries, states_per_country=2):
-    states = []
-    for country in countries:
-        for _ in range(states_per_country):
-            state = State(name=fake.state(), country_id=country.id)
-            db.session.add(state)
-            states.append(state)
-    db.session.flush()
-    return states
+    # 2. States
+    states_data = [
+        {"name": "DKI Jakarta", "country_name": "Indonesia"},
+        {"name": "West Java", "country_name": "Indonesia"},
+        {"name": "California", "country_name": "United States"},
+        {"name": "New York", "country_name": "United States"},
+        {"name": "Ontario", "country_name": "Canada"},
+        {"name": "Quebec", "country_name": "Canada"},
+        {"name": "England", "country_name": "United Kingdom"},
+        {"name": "Bavaria", "country_name": "Germany"},
+        {"name": "Île-de-France", "country_name": "France"},
+        {"name": "Tokyo", "country_name": "Japan"}, # Tokyo is often treated as a prefecture with state-like status
+        {"name": "New South Wales", "country_name": "Australia"},
+    ]
 
-def seed_cities(states, cities_per_state=2):
-    cities = []
-    for state in states:
-        for _ in range(cities_per_state):
-            city = City(name=fake.city(), state_id=state.id)
-            db.session.add(city)
-            cities.append(city)
-    db.session.flush()
-    return cities
+    created_states = {}
+    for state_data in states_data:
+        country = created_countries.get(state_data["country_name"])
+        if country:
+            state = State.query.filter_by(name=state_data["name"], country_id=country.id).first()
+            if not state:
+                state = State(name=state_data["name"], country=country)
+                db.session.add(state)
+            created_states[state_data["name"]] = state
+    db.session.flush() # Flush to get IDs for states
 
-def seed_locations(cities, count=30):
-    locations = []
-    for _ in range(count):
-        if not cities:
-            print("No cities to assign locations to. Skipping location seeding.")
-            return locations
-        location = Location(
-            name=fake.street_name(),
-            address=fake.address(),
-            zip_code=fake.zipcode(),
-            city_id=random.choice(cities).id
-        )
-        db.session.add(location)
-        locations.append(location)
-    db.session.flush()
-    return locations
+    # 3. Cities
+    cities_data = [
+        {"name": "Jakarta", "state_name": "DKI Jakarta"},
+        {"name": "Bandung", "state_name": "West Java"},
+        {"name": "Los Angeles", "state_name": "California"},
+        {"name": "San Francisco", "state_name": "California"},
+        {"name": "New York City", "state_name": "New York"},
+        {"name": "Toronto", "state_name": "Ontario"},
+        {"name": "Montreal", "state_name": "Quebec"},
+        {"name": "London", "state_name": "England"},
+        {"name": "Munich", "state_name": "Bavaria"},
+        {"name": "Paris", "state_name": "Île-de-France"},
+        {"name": "Shibuya", "state_name": "Tokyo"}, # A special ward within Tokyo
+        {"name": "Sydney", "state_name": "New South Wales"},
+    ]
 
-def seed_users(locations, count=20):
-    users = []
-    for _ in range(count):
-        user = User(
-            full_name=fake.name(),
-            email=fake.unique.email(),
-            password_hash=hash_password("password123"), # Default password
-            role=random.choice(['customer', 'admin', 'seller']),
-            balance=fake.pydecimal(left_digits=5, right_digits=2, min_value=0, max_value=100000),
-            # referral_code=generate_referral_code(), # User model handles this on init
-            location_id=random.choice([loc.id for loc in locations] + [None]) if locations else None,
-            is_active=True
-        )
-        db.session.add(user)
-        users.append(user)
-    db.session.flush()
-    return users
-
-def seed_authors(count=10):
-    authors = []
-    for _ in range(count):
-        author = Author(full_name=fake.name(), bio=fake.text(max_nb_chars=300))
-        db.session.add(author)
-        authors.append(author)
-    db.session.flush()
-    return authors
-
-def seed_publishers(count=5):
-    publishers = []
-    for _ in range(count):
-        try:
-            publisher = Publisher(name=fake.unique.company())
-            db.session.add(publisher)
-            publishers.append(publisher)
-        except Exception as e:
-            print(f"Skipping publisher due to error: {e}")
-            db.session.rollback()
-            fake.unique.clear()
-            publisher = Publisher(name=fake.unique.company())
-            db.session.add(publisher)
-            publishers.append(publisher)
-    db.session.flush()
-    return publishers
-
-def seed_categories(count=8):
-    categories_data = ['Fiction', 'Science', 'History', 'Technology', 'Fantasy', 'Biography', 'Mystery', 'Thriller', 'Romance', 'Kids', 'Self-Help', 'Business']
-    selected_category_names = random.sample(categories_data, min(count, len(categories_data)))
+    for city_data in cities_data:
+        state = created_states.get(city_data["state_name"])
+        if state:
+            city = City.query.filter_by(name=city_data["name"], state_id=state.id).first()
+            if not city:
+                city = City(name=city_data["name"], state=state)
+                db.session.add(city)
     
-    categories = []
-    for name in selected_category_names:
-        category = Category.query.filter_by(name=name).first()
+    # Commit is handled by seed_all() after this function call
+    print("Geographical data prepared for commit.")
+
+def seed_users():
+    """Seeds users."""
+    print("Seeding users...")
+    users_data = [
+        {"full_name": "Alice Wonderland", "email": "alice@example.com", "password": "SecurePassword123", "role": "admin"},
+        {"full_name": "Bob The Builder", "email": "bob@example.com", "password": "PasswordBob321", "role": "seller"},
+        {"full_name": "Charlie Brown", "email": "charlie@example.com", "password": "CharlieSecure!", "role": "customer"},
+        {"full_name": "Diana Prince", "email": "diana@example.com", "password": "WonderPass1", "role": "seller"},
+        {"full_name": "Edward Scissorhands", "email": "edward@example.com", "password": "CutItOutPass", "role": "customer"},
+        {"full_name": "Fiona Apple", "email": "fiona@example.com", "password": "MusicLover99", "role": "customer"},
+        {"full_name": "George Orwell", "email": "george@example.com", "password": "BigBrotherPass", "role": "seller"},
+        {"full_name": "Harry Potter", "email": "harry@example.com", "password": "ExpectoPass", "role": "customer"},
+    ]
+
+    for user_data in users_data:
+        user = User.query.filter_by(email=user_data["email"]).first()
+        if not user:
+            # The User model's __init__ and @password.setter handle password hashing and referral_code
+            user = User(
+                full_name=user_data["full_name"],
+                email=user_data["email"],
+                password=user_data["password"], # Password will be hashed by the setter
+                role=user_data["role"]
+            )
+            db.session.add(user)
+            
+    # Commit is handled by seed_all()
+    print("Users prepared for commit.")
+
+def seed_locations():
+    """Seeds locations."""
+    print("Seeding locations...")
+
+    locations_data = [
+        {"name": "Central Park Apartment", "address": "123 Green St", "zip_code": "10110", "city_name": "Jakarta"},
+        {"name": "Tech Hub Office", "address": "456 Innovation Ave", "zip_code": "94107", "city_name": "San Francisco"},
+        {"name": "Downtown Bookstore", "address": "789 Main St", "zip_code": "M5H2N2", "city_name": "Toronto"},
+        {"name": "Riverside Cafe", "address": "101 River Rd", "zip_code": "75001", "city_name": "Paris"},
+        {"name": "Mountain View House", "address": "22 Peak Cir", "zip_code": "80302", "city_name": "Bandung"}, # Assuming Bandung is a valid city
+        {"name": "Beachside Villa", "address": "33 Ocean Dr", "zip_code": "90210", "city_name": "Los Angeles"},
+        {"name": "Shibuya Crossing Point", "address": "1 Chome Dogenzaka", "zip_code": "150-0043", "city_name": "Shibuya"},
+        {"name": "The Rocks Historical Site", "address": "10 Playfair St", "zip_code": "2000", "city_name": "Sydney"},
+    ]
+
+    for loc_data in locations_data:
+        city = City.query.filter_by(name=loc_data["city_name"]).first()
+        if city:
+            location = Location.query.filter_by(address=loc_data["address"], city_id=city.id).first()
+            if not location:
+                location = Location(
+                    name=loc_data["name"],
+                    address=loc_data["address"],
+                    zip_code=loc_data["zip_code"],
+                    city_id=city.id  # Link to the fetched city
+                )
+                db.session.add(location)
+        else:
+            print(f"Warning: City '{loc_data['city_name']}' not found for location '{loc_data['name']}'. Skipping.")
+
+    # Commit is handled by seed_all()
+    print("Locations prepared for commit.")
+
+def assign_locations_to_users():
+    """Assigns locations to existing users."""
+    print("Assigning locations to users...")
+
+    users = User.query.all()
+    locations = Location.query.all()
+
+    if not users:
+        print("No users found to assign locations to. Skipping.")
+        return
+    if not locations:
+        print("No locations found to assign to users. Skipping.")
+        return
+
+    # Simple assignment: distribute locations among users
+    # More sophisticated logic could be used for specific assignments
+    for i, user in enumerate(users):
+        if user.location_id is None: # Assign only if user doesn't have a location
+            location_to_assign = locations[i % len(locations)] # Cycle through locations
+            user.location_id = location_to_assign.id
+            print(f"Assigning location '{location_to_assign.name}' (ID: {location_to_assign.id}) to user '{user.full_name}' (ID: {user.id})")
+            db.session.add(user)
+
+    # Commit is handled by seed_all()
+    print("Locations assigned to users, prepared for commit.")
+
+def seed_book_metadata():
+    """Seeds categories, authors, and publishers."""
+    print("Seeding book metadata (categories, authors, publishers)...")
+
+    # 1. Categories
+    categories_data = [
+        "Fiction", "Science Fiction", "Fantasy", "Mystery", "Thriller",
+        "Non-Fiction", "Biography", "History", "Science", "Technology",
+        "Self-Help", "Business", "Programming", "Children's Books", "Comics"
+    ]
+    created_categories = {}
+    for cat_name in categories_data:
+        category = Category.query.filter_by(name=cat_name).first()
         if not category:
-            category = Category(name=name)
+            category = Category(name=cat_name)
             db.session.add(category)
-        categories.append(category)
+        created_categories[cat_name] = category
+    db.session.flush() # Get IDs if needed later, though direct objects are fine
+
+    # 2. Authors
+    authors_data = [
+        {"full_name": "J.K. Rowling", "bio": "Author of the Harry Potter series."},
+        {"full_name": "George R.R. Martin", "bio": "Author of A Song of Ice and Fire."},
+        {"full_name": "J.R.R. Tolkien", "bio": "Author of The Lord of the Rings."},
+        {"full_name": "Agatha Christie", "bio": "Queen of Mystery."},
+        {"full_name": "Stephen King", "bio": "Master of Horror."},
+        {"full_name": "Isaac Asimov", "bio": "Prolific science fiction writer."},
+        {"full_name": "Walter Isaacson", "bio": "Biographer of innovators."},
+        {"full_name": "Yuval Noah Harari", "bio": "Historian and author of Sapiens."},
+        {"full_name": "Charles Petzold", "bio": "Author of Code: The Hidden Language of Computer Hardware and Software"},
+        {"full_name": "Eric Matthes", "bio": "Author of Python Crash Course."}
+    ]
+    created_authors = {}
+    for author_data in authors_data:
+        author = Author.query.filter_by(full_name=author_data["full_name"]).first()
+        if not author:
+            author = Author(full_name=author_data["full_name"], bio=author_data.get("bio"))
+            db.session.add(author)
+        created_authors[author_data["full_name"]] = author
     db.session.flush()
-    return categories
 
-def seed_books(authors, publishers, users, categories, count=50):
-    books = []
-    if not authors or not publishers or not users or not categories:
-        print("Missing prerequisite data for books (authors, publishers, users, or categories). Skipping book seeding.")
-        return books
-
-    seller_users = [u for u in users if u.role in ['seller', 'admin']]
-    if not seller_users:
-        print("No seller/admin users found to assign books to. Skipping book seeding.")
-        return books
-
-    for _ in range(count):
-        book = Book(
-            title=fake.catch_phrase(),
-            author_id=random.choice(authors).id,
-            publisher_id=random.choice(publishers).id,
-            user_id=random.choice(seller_users).id,
-            description=fake.paragraph(nb_sentences=3),
-            rating=Decimal(str(fake.random_int(min=1, max=5)) + '.' + str(fake.random_int(min=0, max=99))).quantize(Decimal('0.01')) if random.random() > 0.2 else None,
-            quantity=fake.random_int(min=0, max=50),
-            price=fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=Decimal('5.00'), max_value=Decimal('200.00')),
-            discount_percent=fake.random_int(min=0, max=50),
-            image_url_1=fake.image_url(),
-            image_url_2=fake.image_url() if random.random() > 0.5 else None,
-            image_url_3=fake.image_url() if random.random() > 0.7 else None,
-        )
-        # Add categories
-        book.categories.extend(random.sample(categories, k=random.randint(1, min(3, len(categories)))))
-        db.session.add(book)
-        books.append(book)
-    db.session.flush()
-    return books
-
-def seed_ratings(users, books, count=100):
-    ratings = []
-    if not users or not books:
-        print("Missing users or books for ratings. Skipping rating seeding.")
-        return ratings
+    # 3. Publishers
+    publishers_data = [
+        "Bloomsbury", "Bantam Spectra", "Allen & Unwin", "HarperCollins",
+        "Scribner", "Doubleday", "Simon & Schuster", "Harvill Secker", "Microsoft Press", "No Starch Press"
+    ]
+    created_publishers = {}
+    for pub_name in publishers_data:
+        publisher = Publisher.query.filter_by(name=pub_name).first()
+        if not publisher:
+            publisher = Publisher(name=pub_name)
+            db.session.add(publisher)
+        created_publishers[pub_name] = publisher
     
-    # To avoid duplicate ratings (user_id, book_id)
-    rated_pairs = set()
+    # Commit is handled by seed_all()
+    print("Book metadata (categories, authors, publishers) prepared for commit.")
 
-    for _ in range(count):
-        user = random.choice(users)
-        book = random.choice(books)
+def seed_books():
+    """Seeds books and their relationships to categories."""
+    print("Seeding books...")
+
+    # Ensure previous data is available or query it
+    # For simplicity, we'll query, but in a large seeder, passing created objects might be better.
+    authors = {author.full_name: author for author in Author.query.all()}
+    publishers = {publisher.name: publisher for publisher in Publisher.query.all()}
+    categories_map = {category.name: category for category in Category.query.all()}
+    # Sellers are users with the 'seller' role, or any user for this example
+    sellers = {user.email: user for user in User.query.filter_by(role='seller').all()}
+    if not sellers: # Fallback to any user if no specific sellers found
+        all_users = User.query.all()
+        if all_users:
+             sellers = {user.email: user for user in all_users} # Use any user as a seller
+        else:
+            print("Warning: No users found to act as sellers. Books cannot be seeded without a user_id.")
+            return
+
+
+    books_data = [
+        {
+            "title": "Harry Potter and the Sorcerer's Stone", "author_name": "J.K. Rowling",
+            "publisher_name": "Bloomsbury", "seller_email": "bob@example.com", # Bob is a seller
+            "description": "The first book in the Harry Potter series.", "quantity": 50, "price": Decimal("19.99"),
+            "discount_percent": 10, "image_url_1": "https://example.com/hp1.jpg",
+            "category_names": ["Fantasy", "Children's Books"]
+        },
+        {
+            "title": "A Game of Thrones", "author_name": "George R.R. Martin",
+            "publisher_name": "Bantam Spectra", "seller_email": "diana@example.com", # Diana is a seller
+            "description": "The first book in A Song of Ice and Fire.", "quantity": 30, "price": Decimal("24.99"),
+            "discount_percent": 0, "image_url_1": "https://example.com/got1.jpg",
+            "category_names": ["Fantasy", "Fiction"]
+        },
+        {
+            "title": "The Hobbit", "author_name": "J.R.R. Tolkien",
+            "publisher_name": "Allen & Unwin", "seller_email": "bob@example.com",
+            "description": "A prelude to The Lord of the Rings.", "quantity": 40, "price": Decimal("15.00"),
+            "discount_percent": 5, "image_url_1": "https://example.com/hobbit.jpg",
+            "category_names": ["Fantasy", "Children's Books"]
+        },
+        {
+            "title": "Murder on the Orient Express", "author_name": "Agatha Christie",
+            "publisher_name": "HarperCollins", "seller_email": "diana@example.com",
+            "description": "A classic Hercule Poirot mystery.", "quantity": 25, "price": Decimal("12.99"),
+            "discount_percent": 0, "image_url_1": "https://example.com/orient.jpg",
+            "category_names": ["Mystery", "Thriller"]
+        },
+        {
+            "title": "Sapiens: A Brief History of Humankind", "author_name": "Yuval Noah Harari",
+            "publisher_name": "Harvill Secker", "seller_email": "george@example.com", # George is a seller
+            "description": "A captivating account of human history.", "quantity": 60, "price": Decimal("29.99"),
+            "discount_percent": 15, "image_url_1": "https://example.com/sapiens.jpg",
+            "category_names": ["Non-Fiction", "History", "Science"]
+        },
+        {
+            "title": "Code: The Hidden Language of Computer Hardware and Software", "author_name": "Charles Petzold",
+            "publisher_name": "Microsoft Press", "seller_email": "bob@example.com",
+            "description": "Explains the C# language.", "quantity": 35, "price": Decimal("49.99"),
+            "discount_percent": 10, "image_url_1": "https://example.com/code_petzold.jpg",
+            "category_names": ["Technology", "Programming", "Non-Fiction"]
+        },
+        {
+            "title": "Python Crash Course", "author_name": "Eric Matthes",
+            "publisher_name": "No Starch Press", "seller_email": "diana@example.com",
+            "description": "A hands-on, project-based introduction to programming.", "quantity": 70, "price": Decimal("39.95"),
+            "discount_percent": 5, "image_url_1": "https://example.com/python_crash.jpg",
+            "category_names": ["Technology", "Programming", "Self-Help"]
+        }
+    ]
+
+    for book_data in books_data:
+        # Check if book already exists by title and author to prevent duplicates
+        author = authors.get(book_data["author_name"])
+        if not author:
+            print(f"Warning: Author '{book_data['author_name']}' not found for book '{book_data['title']}'. Skipping.")
+            continue
         
-        if (user.id, book.id) in rated_pairs:
-            continue # Skip if this pair has already been rated
+        existing_book = Book.query.filter_by(title=book_data["title"], author_id=author.id).first()
+        if existing_book:
+            print(f"Book '{book_data['title']}' by '{book_data['author_name']}' already exists. Skipping.")
+            continue
 
+        publisher = publishers.get(book_data["publisher_name"])
+        seller = sellers.get(book_data["seller_email"])
+
+        if not publisher:
+            print(f"Warning: Publisher '{book_data['publisher_name']}' not found for book '{book_data['title']}'. Skipping.")
+            continue
+        if not seller:
+            print(f"Warning: Seller with email '{book_data['seller_email']}' not found for book '{book_data['title']}'. Trying any seller.")
+            # Fallback: try to get any seller if the specified one is not found or not a seller
+            if sellers: # Check if sellers dict is not empty
+                seller = next(iter(sellers.values())) # Get the first available seller
+                print(f"Using fallback seller '{seller.full_name}' for book '{book_data['title']}'.")
+            else: # If still no seller, then skip
+                print(f"Critical: No seller available for book '{book_data['title']}'. Skipping.")
+                continue
+
+
+        book = Book(
+            title=book_data["title"],
+            author_id=author.id,
+            publisher_id=publisher.id,
+            user_id=seller.id, # Seller's ID
+            description=book_data["description"],
+            quantity=book_data["quantity"],
+            price=book_data["price"],
+            discount_percent=book_data["discount_percent"],
+            image_url_1=book_data.get("image_url_1"),
+            # rating will be calculated or set by ratings seed
+        )
+
+        # Add categories
+        for cat_name in book_data["category_names"]:
+            category = categories_map.get(cat_name)
+            if category:
+                book.categories.append(category)
+            else:
+                print(f"Warning: Category '{cat_name}' not found for book '{book_data['title']}'.")
+        
+        db.session.add(book)
+
+    # Commit is handled by seed_all()
+    print("Books prepared for commit.")
+
+def seed_ratings():
+    """Seeds ratings for books by users."""
+    print("Seeding ratings...")
+
+    users = {user.email: user for user in User.query.all()}
+    books = {book.title: book for book in Book.query.all()}
+
+    if not users or not books:
+        print("Warning: No users or books found. Cannot seed ratings.")
+        return
+
+    ratings_data = [
+        {
+            "user_email": "alice@example.com", "book_title": "Harry Potter and the Sorcerer's Stone",
+            "score": 5, "text": "A magical start to a fantastic series!"
+        },
+        {
+            "user_email": "charlie@example.com", "book_title": "Harry Potter and the Sorcerer's Stone",
+            "score": 4, "text": "Enjoyed it, very imaginative."
+        },
+        {
+            "user_email": "bob@example.com", "book_title": "A Game of Thrones", # Bob is a seller, but can also rate
+            "score": 5, "text": "Epic fantasy, couldn't put it down."
+        },
+        {
+            "user_email": "diana@example.com", "book_title": "The Hobbit",
+            "score": 4, "text": "A charming adventure."
+        },
+        {
+            "user_email": "edward@example.com", "book_title": "Murder on the Orient Express",
+            "score": 5, "text": "Classic mystery, brilliantly plotted."
+        },
+        {
+            "user_email": "fiona@example.com", "book_title": "Sapiens: A Brief History of Humankind",
+            "score": 5, "text": "Mind-expanding and thought-provoking."
+        },
+        {
+            "user_email": "alice@example.com", "book_title": "Sapiens: A Brief History of Humankind",
+            "score": 4, "text": "Very insightful read."
+        },
+        {
+            "user_email": "harry@example.com", "book_title": "Python Crash Course",
+            "score": 5, "text": "Excellent for beginners! Helped me a lot."
+        },
+         {
+            "user_email": "george@example.com", "book_title": "Code: The Hidden Language of Computer Hardware and Software",
+            "score": 4, "text": "A foundational book for understanding computers."
+        }
+    ]
+
+    for rating_data in ratings_data:
+        user = users.get(rating_data["user_email"])
+        book = books.get(rating_data["book_title"])
+
+        if not user:
+            print(f"Warning: User with email '{rating_data['user_email']}' not found for rating. Skipping.")
+            continue
+        if not book:
+            print(f"Warning: Book with title '{rating_data['book_title']}' not found for rating. Skipping.")
+            continue
+
+        existing_rating = Rating.query.filter_by(user_id=user.id, book_id=book.id).first()
+        if existing_rating:
+            print(f"User '{user.full_name}' has already rated book '{book.title}'. Skipping duplicate rating seed.")
+            continue
+            
         rating = Rating(
             user_id=user.id,
             book_id=book.id,
-            score=fake.random_int(min=1, max=5),
-            text=fake.sentence() if random.random() > 0.3 else None
+            score=rating_data["score"],
+            text=rating_data.get("text")
         )
         db.session.add(rating)
-        ratings.append(rating)
-        rated_pairs.add((user.id, book.id))
-    db.session.flush()
-    return ratings
 
-def seed_vouchers(users, count=15):
-    vouchers = []
-    if not users:
-        print("Missing users for vouchers. Skipping voucher seeding.")
-        return vouchers
+    # Commit is handled by seed_all()
+    print("Ratings prepared for commit.")
 
-    for _ in range(count):
-        voucher_type_choice = random.choice([VoucherType.PERCENTAGE, VoucherType.FIXED_AMOUNT, VoucherType.WELCOME])
-        value = Decimal(fake.random_int(min=5, max=30)) if voucher_type_choice == VoucherType.PERCENTAGE else fake.pydecimal(left_digits=2, right_digits=2, positive=True, min_value=Decimal('5.00'), max_value=Decimal('50.00'))
+def clear_data():
+    """Clears all data from the relevant tables."""
+    print("Clearing existing data...")
+    # Order matters due to foreign key constraints:
+    # Start with tables that are depended upon by others, or disable FK checks temporarily
+    # For simplicity, we'll delete in reverse order of creation/dependency
+    
+    # This is a basic approach. For more complex scenarios,
+    # you might need to handle circular dependencies or use raw SQL.
+    # Disabling FK checks is database-specific (e.g., `SET FOREIGN_KEY_CHECKS=0;` for MySQL)
+
+    # Order of deletion: Rating, Book (and its association table),
+    # Author, Publisher, Category, User, Location, City, State, Country.
+    # The book_category_table is an association table and might be cleared when books/categories are.
+
+    try:
+        # Delete records, respecting foreign key constraints by order
+        Rating.query.delete()
+        # For many-to-many like book_category, SQLAlchemy handles it if cascade is set,
+        # or you might need to clear the association table directly if not.
+        # db.session.execute(book_category_table.delete()) # If direct clearing is needed
+        Book.query.delete()
+        Author.query.delete()
+        Publisher.query.delete()
+        Category.query.delete()
+        # Users might have FKs to Location, and also `referred_by` self-referential FK.
+        # Need to be careful here. Setting FKs to NULL before deleting might be one strategy
+        # or ensure no users refer to others before deleting.
+        # For now, a simple delete; might need refinement.
+        User.query.delete() # This might fail if other tables still reference User
+        Location.query.delete()
+        City.query.delete()
+        State.query.delete()
+        Country.query.delete()
         
-        # Ensure Voucher code is unique using its own generator
-        code = Voucher._generate_voucher_code()
+        db.session.commit()
+        print("Data cleared successfully.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error clearing data: {e}")
 
-        voucher = Voucher(
-            code=code,
-            name=fake.bs().title() + ' Offer',
-            description=fake.sentence(nb_words=6),
-            type=voucher_type_choice,
-            value=value,
-            min_transaction=fake.pydecimal(left_digits=3, right_digits=2, positive=True, min_value=Decimal('10.00'), max_value=Decimal('100.00')),
-            max_discount=fake.pydecimal(left_digits=2, right_digits=2, positive=True, min_value=Decimal('10.00'), max_value=Decimal('30.00')) if voucher_type_choice == VoucherType.PERCENTAGE else None,
-            expired_date=datetime.utcnow() + timedelta(days=fake.random_int(min=30, max=120)),
-            usage_limit=fake.random_int(min=1, max=100),
-            user_id=random.choice([u.id for u in users] + [None] * 5) # Some user-specific, many general
-        )
-        db.session.add(voucher)
-        vouchers.append(voucher)
-    db.session.flush()
-    return vouchers
-
-def seed_blacklist_tokens(count=3):
-    tokens = []
-    for _ in range(count):
-        token = BlacklistToken(
-            token=fake.sha256(),
-            blacklisted_on=fake.past_datetime()
-        )
-        db.session.add(token)
-        tokens.append(token)
-    db.session.flush()
-    return tokens
 
 def seed_all():
-    # app = create_app() # Ensure app context if run standalone
+    """
+    Main function to orchestrate the seeding process.
+    Clears existing data and then seeds new data in the correct order.
+    """
+    # Option: Clear data before seeding. Use with caution.
+    # clear_data() 
+
+    print("Starting database seeding process...")
+
+    seed_geographical_data()
+    db.session.commit()
+
+    seed_users()
+    db.session.commit()
+
+    seed_locations()
+    db.session.commit()
+
+    assign_locations_to_users()
+    db.session.commit()
+
+    seed_book_metadata()
+    db.session.commit()
+
+    seed_books()
+    db.session.commit()
+
+    seed_ratings()
+    db.session.commit()
+
+    print("Database seeding process completed successfully!")
+
+if __name__ == '__main__':
+    # This part is for running the seeder directly.
+    # You'll need to set up the Flask app context if you run this standalone.
+    # from app import create_app # Assuming your app factory is in app.py or similar
+    # app = create_app()
     # with app.app_context():
-    # clear_data() # Uncomment to clear data before seeding
-
-    print("Seeding countries...")
-    countries = seed_countries(count=5)
-    db.session.commit()
-
-    print("Seeding states...")
-    states = seed_states(countries, states_per_country=2)
-    db.session.commit()
-
-    print("Seeding cities...")
-    cities = seed_cities(states, cities_per_state=2)
-    db.session.commit()
-
-    print("Seeding locations...")
-    locations = seed_locations(cities, count=30)
-    db.session.commit()
-
-    print("Seeding users...")
-    users = seed_users(locations, count=20)
-    db.session.commit()
-
-    print("Seeding authors...")
-    authors = seed_authors(count=10)
-    db.session.commit()
-
-    print("Seeding publishers...")
-    publishers = seed_publishers(count=5)
-    db.session.commit()
-
-    print("Seeding categories...")
-    categories = seed_categories(count=8)
-    db.session.commit()
-
-    print("Seeding books and book_categories...")
-    books = seed_books(authors, publishers, users, categories, count=50)
-    db.session.commit()
-
-    print("Seeding ratings...")
-    seed_ratings(users, books, count=100)
-    db.session.commit()
-
-    print("Seeding vouchers...")
-    seed_vouchers(users, count=15)
-    db.session.commit()
-
-    # print("Seeding blacklist tokens...")
-    # seed_blacklist_tokens(count=3)
-    # db.session.commit()
-
-    print("Database seeding complete!")
+    #     seed_all()
+    print("To run the seeder, you need to execute it within the Flask app context.")
+    print("Example: flask seed run") # Or however you set up your CLI command

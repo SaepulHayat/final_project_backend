@@ -23,7 +23,6 @@ class User(db.Model):
     location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True, index=True)
 
     # --- Relationships ---
-    vouchers = db.relationship('Voucher', back_populates='user')
     location = db.relationship('Location', back_populates='users', foreign_keys=[location_id])
     books_for_sale = db.relationship('Book', back_populates='user', lazy='dynamic', cascade="all, delete-orphan")
     ratings = db.relationship('Rating', back_populates='user', cascade="all, delete-orphan")
@@ -94,3 +93,12 @@ class User(db.Model):
         if self.balance < amount:
             raise ValueError("Saldo tidak mencukupi")
         self.balance -= amount
+
+    @classmethod
+    def get_cached(cls, user_id: int):
+        """
+        Retrieves a user by ID.
+        In a real application, this would involve a caching layer.
+        For now, it directly queries the database.
+        """
+        return cls.query.get(user_id)
