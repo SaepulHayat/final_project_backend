@@ -27,7 +27,6 @@ class User(db.Model):
     location = db.relationship('Location', back_populates='users', foreign_keys=[location_id])
     books_for_sale = db.relationship('Book', back_populates='user', lazy='dynamic', cascade="all, delete-orphan")
     ratings = db.relationship('Rating', back_populates='user', cascade="all, delete-orphan")
-    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True)
     referrer = db.relationship(
         'User',
         remote_side=[id],

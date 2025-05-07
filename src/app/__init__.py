@@ -2,11 +2,9 @@ from flask import Flask
 from .config import config_by_name
 from .extensions import init_db
 from .model import *
-from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp
+from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp, book_bp
 from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
 import os
-
-from .seed import seed_db_command
 
 
 def create_app():
@@ -16,11 +14,14 @@ def create_app():
     print("--- Keys in config_by_name:", config_by_name.keys())
     app.config.from_object(config_by_name[config_name])
     
-    # Initialize extensions here
     init_db(app)
-    
-    # Seed the database with initial data
-    app.cli.add_command(seed_db_command)
+
+    # @app.cli.command("seed-db")
+    # def seed_db_command_cli():
+    #     """Seeds the database with sample data."""
+    #     from .seed import seed_all
+    #     seed_all()
+    #     print("Database seeding initiated via app.cli command.")
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')
@@ -30,6 +31,7 @@ def create_app():
     app.register_blueprint(publisher_bp, url_prefix='/api/v1/publishers')
     app.register_blueprint(city_bp, url_prefix='/api/v1/cities')
     app.register_blueprint(state_bp, url_prefix='/api/v1/states')
+    app.register_blueprint(book_bp, url_prefix='/api/v1/books')
     app.register_blueprint(book_ratings_bp)
     app.register_blueprint(user_ratings_bp)
     app.register_blueprint(ratings_bp)

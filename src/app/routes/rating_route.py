@@ -66,7 +66,6 @@ def get_user_ratings_route(user_id):
 ratings_bp = Blueprint('ratings', __name__, url_prefix='/api/v1/ratings')
 
 @ratings_bp.route('/<int:rating_id>', methods=['GET'])
-@jwt_required(optional=True) # Allow anonymous access if needed, or make required
 def get_rating_by_id_route(rating_id):
     user_identity = get_jwt_identity()
     current_user_id = None
