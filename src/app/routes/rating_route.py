@@ -14,7 +14,7 @@ book_ratings_bp = Blueprint('book_ratings', __name__, url_prefix='/api/v1/books/
 rating_service = RatingService() # Instantiate service
 
 @book_ratings_bp.route('/', methods=['POST'])
-# role_required(UserRoles.USER, UserRoles.SELLER) # Users and Sellers can rate
+@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value])
 def create_rating_route(book_id):
     user_identity = get_jwt_identity() # Get user info from JWT (e.g., user_id)
     user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity # Adjust based on JWT content
@@ -43,9 +43,7 @@ def get_ratings_for_book_route(book_id):
 user_ratings_bp = Blueprint('user_ratings', __name__, url_prefix='/api/v1/users')
 
 @user_ratings_bp.route('/me/ratings', methods=['GET'])
-@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value]) # Users and Sellers can view their own ratings
-# role_required(UserRoles.USER, UserRoles.SELLER, [UserRoles.ADMIN.value]) # All
-# authenticated users can see their own
+@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value])
 def get_my_ratings_route():
     user_identity = get_jwt_identity()
     user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity
@@ -91,7 +89,7 @@ def get_rating_by_id_route(rating_id):
     return create_response(**result), status_code
 
 @ratings_bp.route('/<int:rating_id>', methods=['PATCH'])
-# No specific role needed here, service layer handles ownership/admin check
+@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value])
 def update_rating_route(rating_id):
     user_identity = get_jwt_identity()
     current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity

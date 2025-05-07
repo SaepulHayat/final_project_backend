@@ -23,6 +23,10 @@ def create_location_route():
     jwt_data = get_jwt()
     user_role = jwt_data.get('role')
 
+    if user_role is None:
+        logger.error(f"User role not found in JWT claims for user_id {current_user_id}. JWT data: {jwt_data}")
+        return create_response(status="error", message="User role not found in token. Cannot process request.", error="missing_role_claim"), 403 # Forbidden or Bad Request
+
     result = location_service.create_location(data, current_user_id, user_role)
     status_code = result.get('status_code', 500)
     return create_response(**result), status_code

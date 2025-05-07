@@ -32,6 +32,11 @@ def seed_geographical_data():
         {"name": "France", "code": "FR"},
         {"name": "Japan", "code": "JP"},
         {"name": "Australia", "code": "AU"},
+        {"name": "Brazil", "code": "BR"},
+        {"name": "India", "code": "IN"},
+        {"name": "China", "code": "CN"},
+        {"name": "Mexico", "code": "MX"},
+        {"name": "South Korea", "code": "KR"},
     ]
     
     created_countries = {}
@@ -57,6 +62,17 @@ def seed_geographical_data():
         {"name": "Tokyo", "country_name": "Japan"}, # Tokyo is often treated as a prefecture with state-like status
         {"name": "New South Wales", "country_name": "Australia"},
     ]
+    # Added more states
+    states_data.extend([
+        {"name": "Rio de Janeiro", "country_name": "Brazil"},
+        {"name": "São Paulo", "country_name": "Brazil"},
+        {"name": "Maharashtra", "country_name": "India"},
+        {"name": "Delhi", "country_name": "India"},
+        {"name": "Guangdong", "country_name": "China"},
+        {"name": "Beijing", "country_name": "China"},
+        {"name": "Mexico City", "country_name": "Mexico"}, # Mexico City is a state-level entity
+        {"name": "Gyeonggi", "country_name": "South Korea"},
+    ])
 
     created_states = {}
     for state_data in states_data:
@@ -84,6 +100,17 @@ def seed_geographical_data():
         {"name": "Shibuya", "state_name": "Tokyo"}, # A special ward within Tokyo
         {"name": "Sydney", "state_name": "New South Wales"},
     ]
+    # Added more cities
+    cities_data.extend([
+        {"name": "Rio de Janeiro", "state_name": "Rio de Janeiro"},
+        {"name": "São Paulo", "state_name": "São Paulo"},
+        {"name": "Mumbai", "state_name": "Maharashtra"},
+        {"name": "Delhi", "state_name": "Delhi"},
+        {"name": "Guangzhou", "state_name": "Guangdong"},
+        {"name": "Beijing", "state_name": "Beijing"},
+        {"name": "Mexico City", "state_name": "Mexico City"},
+        {"name": "Seoul", "state_name": "Gyeonggi"}, # Seoul is a special city, often treated separately, but linking to Gyeonggi for simplicity here
+    ])
 
     for city_data in cities_data:
         state = created_states.get(city_data["state_name"])
@@ -108,6 +135,12 @@ def seed_users():
         {"full_name": "Fiona Apple", "email": "fiona@example.com", "password": "MusicLover99", "role": "customer"},
         {"full_name": "George Orwell", "email": "george@example.com", "password": "BigBrotherPass", "role": "seller"},
         {"full_name": "Harry Potter", "email": "harry@example.com", "password": "ExpectoPass", "role": "customer"},
+        {"full_name": "Ivy Green", "email": "ivy@example.com", "password": "IvyPassword", "role": "seller"},
+        {"full_name": "Jack Black", "email": "jack@example.com", "password": "JackPass", "role": "customer"},
+        {"full_name": "Kara Danvers", "email": "kara@example.com", "password": "SuperPass", "role": "customer"},
+        {"full_name": "Liam Neeson", "email": "liam@example.com", "password": "TakenPass", "role": "seller"},
+        {"full_name": "Mia Thermopolis", "email": "mia@example.com", "password": "PrincessPass", "role": "customer"},
+        {"full_name": "Noah Builder", "email": "noah@example.com", "password": "ArkPass", "role": "customer"},
     ]
 
     for user_data in users_data:
@@ -134,10 +167,18 @@ def seed_locations():
         {"name": "Tech Hub Office", "address": "456 Innovation Ave", "zip_code": "94107", "city_name": "San Francisco"},
         {"name": "Downtown Bookstore", "address": "789 Main St", "zip_code": "M5H2N2", "city_name": "Toronto"},
         {"name": "Riverside Cafe", "address": "101 River Rd", "zip_code": "75001", "city_name": "Paris"},
-        {"name": "Mountain View House", "address": "22 Peak Cir", "zip_code": "80302", "city_name": "Bandung"}, # Assuming Bandung is a valid city
+        {"name": "Mountain View House", "address": "22 Peak Cir", "zip_code": "80302", "city_name": "Bandung"},
         {"name": "Beachside Villa", "address": "33 Ocean Dr", "zip_code": "90210", "city_name": "Los Angeles"},
         {"name": "Shibuya Crossing Point", "address": "1 Chome Dogenzaka", "zip_code": "150-0043", "city_name": "Shibuya"},
         {"name": "The Rocks Historical Site", "address": "10 Playfair St", "zip_code": "2000", "city_name": "Sydney"},
+        {"name": "Copacabana Beach Kiosk", "address": "Av. Atlântica, S/N", "zip_code": "22070-010", "city_name": "Rio de Janeiro"},
+        {"name": "Ibirapuera Park Entrance", "address": "Av. Pedro Álvares Cabral, S/N", "zip_code": "04094-050", "city_name": "São Paulo"},
+        {"name": "Gateway of India", "address": "Apollo Bunder", "zip_code": "400001", "city_name": "Mumbai"},
+        {"name": "Red Fort Area", "address": "Netaji Subhash Marg", "zip_code": "110006", "city_name": "Delhi"},
+        {"name": "Canton Tower Observation Deck", "address": "Yuejiang W Rd", "zip_code": "510623", "city_name": "Guangzhou"},
+        {"name": "Forbidden City Entrance", "address": "4 Jingshan Front St", "zip_code": "100009", "city_name": "Beijing"},
+        {"name": "Zocalo Square", "address": "Plaza de la Constitución S/N", "zip_code": "06060", "city_name": "Mexico City"},
+        {"name": "Gangnam Station Area", "address": "Gangnam-daero", "zip_code": "06242", "city_name": "Seoul"},
     ]
 
     for loc_data in locations_data:
@@ -192,7 +233,9 @@ def seed_book_metadata():
     categories_data = [
         "Fiction", "Science Fiction", "Fantasy", "Mystery", "Thriller",
         "Non-Fiction", "Biography", "History", "Science", "Technology",
-        "Self-Help", "Business", "Programming", "Children's Books", "Comics"
+        "Self-Help", "Business", "Programming", "Children's Books", "Comics",
+        "Thriller", "Biography", "History", "Science", "Technology",
+        "Art", "Music", "Cooking", "Travel", "Health", "Fitness"
     ]
     created_categories = {}
     for cat_name in categories_data:
@@ -216,6 +259,14 @@ def seed_book_metadata():
         {"full_name": "Charles Petzold", "bio": "Author of Code: The Hidden Language of Computer Hardware and Software"},
         {"full_name": "Eric Matthes", "bio": "Author of Python Crash Course."}
     ]
+    # Added more authors
+    authors_data.extend([
+        {"full_name": "Jane Austen", "bio": "Known for her six major novels."},
+        {"full_name": "George Orwell", "bio": "Author of Nineteen Eighty-Four and Animal Farm."},
+        {"full_name": "Aldous Huxley", "bio": "Author of Brave New World."},
+        {"full_name": "Carl Sagan", "bio": "Astronomer, planetary scientist, cosmologist, astrophysicist, astrobiologist, author, and science communicator."},
+        {"full_name": "Bill Bryson", "bio": "Author of popular science and travel books."},
+    ])
     created_authors = {}
     for author_data in authors_data:
         author = Author.query.filter_by(full_name=author_data["full_name"]).first()
@@ -228,7 +279,9 @@ def seed_book_metadata():
     # 3. Publishers
     publishers_data = [
         "Bloomsbury", "Bantam Spectra", "Allen & Unwin", "HarperCollins",
-        "Scribner", "Doubleday", "Simon & Schuster", "Harvill Secker", "Microsoft Press", "No Starch Press"
+        "Scribner", "Doubleday", "Simon & Schuster", "Harvill Secker", "Microsoft Press", "No Starch Press",
+        # Added more publishers
+        "Penguin Books", "Vintage Books", "Harper", "W. W. Norton & Company", "Broadway Books"
     ]
     created_publishers = {}
     for pub_name in publishers_data:
@@ -310,6 +363,41 @@ def seed_books():
             "description": "A hands-on, project-based introduction to programming.", "quantity": 70, "price": Decimal("39.95"),
             "discount_percent": 5, "image_url_1": "https://example.com/python_crash.jpg",
             "category_names": ["Technology", "Programming", "Self-Help"]
+        },
+        {
+            "title": "Pride and Prejudice", "author_name": "Jane Austen",
+            "publisher_name": "Penguin Books", "seller_email": "ivy@example.com", # Ivy is a seller
+            "description": "A novel of manners.", "quantity": 20, "price": Decimal("10.50"),
+            "discount_percent": 0, "image_url_1": "https://example.com/pride_prejudice.jpg",
+            "category_names": ["Fiction"]
+        },
+        {
+            "title": "Nineteen Eighty-Four", "author_name": "George Orwell",
+            "publisher_name": "Vintage Books", "seller_email": "liam@example.com", # Liam is a seller
+            "description": "A dystopian social science fiction novel.", "quantity": 30, "price": Decimal("14.00"),
+            "discount_percent": 10, "image_url_1": "https://example.com/1984.jpg",
+            "category_names": ["Fiction", "Science Fiction", "Thriller"]
+        },
+        {
+            "title": "Brave New World", "author_name": "Aldous Huxley",
+            "publisher_name": "Harper", "seller_email": "ivy@example.com",
+            "description": "A dystopian novel.", "quantity": 25, "price": Decimal("13.50"),
+            "discount_percent": 5, "image_url_1": "https://example.com/brave_new_world.jpg",
+            "category_names": ["Fiction", "Science Fiction"]
+        },
+        {
+            "title": "Cosmos", "author_name": "Carl Sagan",
+            "publisher_name": "W. W. Norton & Company", "seller_email": "liam@example.com",
+            "description": "A personal exploration of the cosmos.", "quantity": 40, "price": Decimal("18.00"),
+            "discount_percent": 0, "image_url_1": "https://example.com/cosmos.jpg",
+            "category_names": ["Non-Fiction", "Science"]
+        },
+        {
+            "title": "A Short History of Nearly Everything", "author_name": "Bill Bryson",
+            "publisher_name": "Broadway Books", "seller_email": "ivy@example.com",
+            "description": "A journey through the history of science.", "quantity": 35, "price": Decimal("16.50"),
+            "discount_percent": 15, "image_url_1": "https://example.com/short_history.jpg",
+            "category_names": ["Non-Fiction", "Science", "History"]
         }
     ]
 
@@ -412,9 +500,129 @@ def seed_ratings():
             "user_email": "harry@example.com", "book_title": "Python Crash Course",
             "score": 5, "text": "Excellent for beginners! Helped me a lot."
         },
-         {
+        {
             "user_email": "george@example.com", "book_title": "Code: The Hidden Language of Computer Hardware and Software",
             "score": 4, "text": "A foundational book for understanding computers."
+        },
+        {
+            "user_email": "charlie@example.com", "book_title": "A Game of Thrones",
+            "score": 5, "text": "Incredible world-building!"
+        },
+        {
+            "user_email": "edward@example.com", "book_title": "The Hobbit",
+            "score": 1, "text": "A lovely fantasy story."
+        },
+        {
+            "user_email": "fiona@example.com", "book_title": "Murder on the Orient Express",
+            "score": 5, "text": "Kept me guessing until the end."
+        },
+        {
+            "user_email": "harry@example.com", "book_title": "Sapiens: A Brief History of Humankind",
+            "score": 5, "text": "Changed my perspective on history."
+        },
+        {
+            "user_email": "jack@example.com", "book_title": "Python Crash Course",
+            "score": 5, "text": "Easy to follow and practical."
+        },
+        {
+            "user_email": "kara@example.com", "book_title": "Pride and Prejudice",
+            "score": 2, "text": "A charming classic."
+        },
+        {
+            "user_email": "mia@example.com", "book_title": "Nineteen Eighty-Four",
+            "score": 5, "text": "A chilling and important read."
+        },
+        {
+            "user_email": "noah@example.com", "book_title": "Brave New World",
+            "score": 4, "text": "Thought-provoking dystopian vision."
+        },
+        {
+            "user_email": "alice@example.com", "book_title": "Cosmos",
+            "score": 5, "text": "Sagan makes complex ideas accessible."
+        },
+        {
+            "user_email": "bob@example.com", "book_title": "A Short History of Nearly Everything",
+            "score": 3, "text": "Entertaining and informative."
+        },
+        {
+            "user_email": "charlie@example.com", "book_title": "A Game of Thrones",
+            "score": 5, "text": "Incredible world-building!"
+        },
+        {
+            "user_email": "edward@example.com", "book_title": "The Hobbit",
+            "score": 1, "text": "A lovely fantasy story."
+        },
+        {
+            "user_email": "fiona@example.com", "book_title": "Murder on the Orient Express",
+            "score": 5, "text": "Kept me guessing until the end."
+        },
+        {
+            "user_email": "harry@example.com", "book_title": "Sapiens: A Brief History of Humankind",
+            "score": 5, "text": "Changed my perspective on history."
+        },
+        {
+            "user_email": "jack@example.com", "book_title": "Python Crash Course",
+            "score": 2, "text": "Easy to follow and practical."
+        },
+        {
+            "user_email": "kara@example.com", "book_title": "Pride and Prejudice",
+            "score": 4, "text": "A charming classic."
+        },
+        {
+            "user_email": "mia@example.com", "book_title": "Nineteen Eighty-Four",
+            "score": 5, "text": "A chilling and important read."
+        },
+        {
+            "user_email": "noah@example.com", "book_title": "Brave New World",
+            "score": 2, "text": "Thought-provoking dystopian vision."
+        },
+        {
+            "user_email": "alice@example.com", "book_title": "Cosmos",
+            "score": 5, "text": "Sagan makes complex ideas accessible."
+        },
+        {
+            "user_email": "bob@example.com", "book_title": "A Short History of Nearly Everything",
+            "score": 4, "text": "Entertaining and informative."
+        },
+        {
+            "user_email": "charlie@example.com", "book_title": "A Game of Thrones",
+            "score": 2, "text": "Incredible world-building!"
+        },
+        {
+            "user_email": "edward@example.com", "book_title": "The Hobbit",
+            "score": 2, "text": "A lovely fantasy story."
+        },
+        {
+            "user_email": "fiona@example.com", "book_title": "Murder on the Orient Express",
+            "score": 5, "text": "Kept me guessing until the end."
+        },
+        {
+            "user_email": "harry@example.com", "book_title": "Sapiens: A Brief History of Humankind",
+            "score": 5, "text": "Changed my perspective on history."
+        },
+        {
+            "user_email": "jack@example.com", "book_title": "Python Crash Course",
+            "score": 5, "text": "Easy to follow and practical."
+        },
+        {
+            "user_email": "kara@example.com", "book_title": "Pride and Prejudice",
+            "score": 4, "text": "A charming classic."
+        },
+        {
+            "user_email": "mia@example.com", "book_title": "Nineteen Eighty-Four",
+            "score": 5, "text": "A chilling and important read."
+        },
+        {
+            "user_email": "noah@example.com", "book_title": "Brave New World",
+            "score": 3, "text": "Thought-provoking dystopian vision."
+        },
+        {
+            "user_email": "alice@example.com", "book_title": "Cosmos",
+            "score": 5, "text": "Sagan makes complex ideas accessible."
+        },
+        {
+            "user_email": "bob@example.com", "book_title": "A Short History of Nearly Everything",
+            "score": 3, "text": "Entertaining and informative."
         }
     ]
 
