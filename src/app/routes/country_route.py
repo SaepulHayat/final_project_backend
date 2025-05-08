@@ -11,7 +11,7 @@ country_bp = Blueprint('countries', __name__, url_prefix='/api/v1/countries')
 country_service = CountryService()
 
 @country_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value]) # Admin role required
+@role_required([UserRoles.SELLER.value]) # Admin role required
 def create_country_route():
     data = request.get_json()
     if not data:
@@ -44,7 +44,7 @@ def get_states_by_country_route(country_id):
     return create_response(**result), status_code
 
 @country_bp.route('/<int:country_id>', methods=['PATCH']) # Typically PATCH for partial updates
-@role_required([UserRoles.ADMIN.value]) # Admin role required
+@role_required([UserRoles.SELLER.value]) # Admin role required
 def update_country_route(country_id):
     data = request.get_json()
     if not data:
@@ -54,7 +54,7 @@ def update_country_route(country_id):
     return create_response(**result), status_code
 
 @country_bp.route('/<int:country_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value]) # Admin role required
+@role_required([UserRoles.SELLER.value]) # Admin role required
 def delete_country_route(country_id):
     result = country_service.delete_country(country_id)
     status_code = result.get('status_code', 500)

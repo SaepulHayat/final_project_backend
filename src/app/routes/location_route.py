@@ -13,7 +13,7 @@ location_bp = Blueprint('locations', __name__, url_prefix='/api/v1/locations')
 location_service = LocationService()
 
 @location_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value, UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
+@role_required([UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
 def create_location_route():
     data = request.get_json()
     if not data:
@@ -28,7 +28,7 @@ def create_location_route():
     return create_response(**result), status_code
 
 @location_bp.route('/', methods=['GET'])
-@role_required([UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def get_locations_route():
     args = request.args
     jwt_data = get_jwt()
@@ -39,7 +39,7 @@ def get_locations_route():
     return create_response(**result), status_code
 
 @location_bp.route('/<int:location_id>', methods=['GET'])
-@role_required([UserRoles.ADMIN.value, UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
+@role_required([UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
 def get_location_by_id_route(location_id):
     current_user_id = get_jwt_identity()
     jwt_data = get_jwt()
@@ -50,7 +50,7 @@ def get_location_by_id_route(location_id):
     return create_response(**result), status_code
 
 @location_bp.route('/<int:location_id>', methods=['PATCH'])
-@role_required([UserRoles.ADMIN.value, UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
+@role_required([UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
 def update_location_route(location_id):
     data = request.get_json()
     if not data:
@@ -65,7 +65,7 @@ def update_location_route(location_id):
     return create_response(**result), status_code
 
 @location_bp.route('/<int:location_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value, UserRoles.SELLER.value, UserRoles.CUSTOMER.value]) # Allow Admin, Seller, Customer
+@role_required([UserRoles.SELLER.value, UserRoles.CUSTOMER.value]) # Allow Admin, Seller, Customer
 def delete_location_route(location_id):
     current_user_id = get_jwt_identity() # Get user ID from JWT
     jwt_data = get_jwt() # Get JWT payload

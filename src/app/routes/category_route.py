@@ -11,7 +11,7 @@ category_bp = Blueprint('categories', __name__, url_prefix='/api/v1/categories')
 category_service = CategoryService()
 
 @category_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value]) # Only Admins can create categories
+@role_required([UserRoles.SELLER.value]) # Only Admins can create categories
 def create_category_route():
     data = request.get_json()
     if not data:
@@ -47,7 +47,7 @@ def get_books_by_category_route(category_id):
     return create_response(**result), status_code
 
 @category_bp.route('/<int:category_id>', methods=['PATCH', 'PUT']) # Allow PUT for full replacement semantics if desired
-@role_required([UserRoles.ADMIN.value]) # Only Admins can update categories
+@role_required([UserRoles.SELLER.value]) # Only Admins can update categories
 def update_category_route(category_id):
     data = request.get_json()
     if not data:
@@ -58,7 +58,7 @@ def update_category_route(category_id):
     return create_response(**result), status_code
 
 @category_bp.route('/<int:category_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value]) # Only Admins can delete categories
+@role_required([UserRoles.SELLER.value]) # Only Admins can delete categories
 def delete_category_route(category_id):
     result = category_service.delete_category(category_id)
     status_code = result.get('status_code', 500)

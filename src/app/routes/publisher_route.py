@@ -11,7 +11,7 @@ publisher_bp = Blueprint('publishers', __name__, url_prefix='/api/v1/publishers'
 publisher_service = PublisherService()
 
 @publisher_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value, UserRoles.SELLER]) # Admins or Sellers can create
+@role_required([UserRoles.SELLER.value, UserRoles.SELLER]) # Admins or Sellers can create
 def create_publisher_route():
     # Consider adding check: If user is Seller, maybe restrict fields? (Future enhancement)
     data = request.get_json()
@@ -46,7 +46,7 @@ def get_books_by_publisher_route(publisher_id):
     return create_response(**result), status_code
 
 @publisher_bp.route('/<int:publisher_id>', methods=['PATCH', 'PUT']) # Allow PUT for full replacement semantics if desired
-@role_required([UserRoles.ADMIN.value]) # Only Admins can update
+@role_required([UserRoles.SELLER.value]) # Only Admins can update
 def update_publisher_route(publisher_id):
     data = request.get_json()
     if not data:
@@ -57,7 +57,7 @@ def update_publisher_route(publisher_id):
     return create_response(**result), status_code
 
 @publisher_bp.route('/<int:publisher_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value]) # Only Admins can delete
+@role_required([UserRoles.SELLER.value]) # Only Admins can delete
 def delete_publisher_route(publisher_id):
     result = publisher_service.delete_publisher(publisher_id)
     status_code = result.get('status_code', 500)
