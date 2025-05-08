@@ -14,3 +14,10 @@ class BlacklistToken(db.Model):
 
     def __repr__(self):
         return f"<BlacklistToken {self.token}>"
+
+    @classmethod
+    def is_token_revoked(cls, jti: str) -> bool:
+        """
+        Check if a token has been revoked.
+        """
+        return cls.query.filter_by(token=jti).first() is not None
