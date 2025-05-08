@@ -23,8 +23,26 @@ def create_book_route():
 
 @book_bp.route('/', methods=['GET'])
 def get_books_route():
-    args = request.args
-    result = book_service.get_all_books(args)
+    categories = request.args.get('categories')
+    publisher_name = request.args.get('publisher_name')
+    author_name = request.args.get('author_name')
+    seller_name = request.args.get('seller_name')
+    city_name = request.args.get('city_name')
+    min_rating = request.args.get('min_rating', type=float)
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+
+    result = book_service.get_all_books_filtered(
+        request.args, # Pass the full request.args dictionary
+        categories=categories,
+        publisher_name=publisher_name,
+        author_name=author_name,
+        seller_name=seller_name,
+        city_name=city_name,
+        min_rating=min_rating,
+        min_price=min_price,
+        max_price=max_price
+    )
     status_code = result.get('status_code', 500)
     return create_response(**result), status_code
 
@@ -57,7 +75,7 @@ def update_book_route(book_id):
 @role_required([UserRoles.SELLER.value, UserRoles.ADMIN.value])
 def delete_book_route(book_id):
 
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity()) # Cast to int
     result = book_service.delete_book(book_id, user_id)
     status_code = result.get('status_code', 500)
     if result.get('status') == 'success' and (status_code == 200 or status_code == 204):

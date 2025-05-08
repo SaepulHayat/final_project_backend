@@ -64,27 +64,28 @@ def get_user_ratings_route(user_id):
 ratings_bp = Blueprint('ratings', __name__, url_prefix='/api/v1/ratings')
 
 @ratings_bp.route('/<int:rating_id>', methods=['GET'])
+# Public endpoint - No @jwt_required or role_required needed
 def get_rating_by_id_route(rating_id):
-    user_identity = get_jwt_identity()
-    current_user_id = None
-    current_user_role = None
-    if user_identity:
-        current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity
-        # Fetch role based on ID - requires User model access
-        user = User.query.get(current_user_id)
-        if user:
-            current_user_role = UserRoles(user.role) # Convert string role to enum
+    # user_identity = get_jwt_identity() # Removed for public access
+    # current_user_id = None # Removed for public access
+    # current_user_role = None # Removed for public access
+    # if user_identity: # Removed for public access
+    #     current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity # Removed for public access
+    #     # Fetch role based on ID - requires User model access # Removed for public access
+    #     user = User.query.get(current_user_id) # Removed for public access
+    #     if user: # Removed for public access
+    #         current_user_role = UserRoles(user.role) # Convert string role to enum # Removed for public access
 
-    # If only Admin can access this endpoint:
-    if not current_user_role or current_user_role != [UserRoles.ADMIN.value]:
-        # rating = Rating.query.get(rating_id) # Need to fetch rating first
-        # if not rating or rating.user_id != current_user_id:
-        # Check if the user is trying to access their own rating (if allowed by plan)
-        #      return create_response(status="error", message="Forbidden"), 403
-        # For now, assume only Admin as per plan's note on this specific endpoint
-        return create_response(status="error", message="Forbidden: Admin access required"), 403
+    # # If only Admin can access this endpoint: # Removed for public access
+    # if not current_user_role or current_user_role != [UserRoles.ADMIN.value]: # Removed for public access
+    #     # rating = Rating.query.get(rating_id) # Need to fetch rating first # Removed for public access
+    #     # if not rating or rating.user_id != current_user_id: # Removed for public access
+    #     # Check if the user is trying to access their own rating (if allowed by plan) # Removed for public access
+    #     #      return create_response(status="error", message="Forbidden"), 403 # Removed for public access
+    #     # For now, assume only Admin as per plan's note on this specific endpoint # Removed for public access
+    #     return create_response(status="error", message="Forbidden: Admin access required"), 403 # Removed for public access
 
-    result = rating_service.get_rating_by_id(rating_id) # Pass user info if service needs it for checks
+    result = rating_service.get_rating_by_id(rating_id) # Service call remains, user context is optional in service
     status_code = result.get('status_code', 500)
     return create_response(**result), status_code
 

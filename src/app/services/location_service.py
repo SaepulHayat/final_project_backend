@@ -156,9 +156,8 @@ class LocationService:
 
         updated = False
         if 'city_id' in data:
-            if not is_admin:
-                return error_response("Forbidden: Only Admins can change the city of a location.", error="permission_denied_city_change", status_code=403)
-            
+            logger.info(f"User {current_user_id} (Role: {current_user_role}) attempting to change city_id for location {location_id}.")
+            # Removed admin check for city_id change
             new_city_id = data['city_id']
             city = City.query.get(new_city_id)
             if not city:
@@ -194,7 +193,7 @@ class LocationService:
             db.session.rollback()
             logger.error(f"Error updating location (IntegrityError) {location_id}: {e}", exc_info=True)
             if "unique constraint" in str(e.orig).lower():
-                 return error_response("Failed to update location due to a conflict.", error="conflict", status_code=409)
+                return error_response("Failed to update location due to a conflict.", error="conflict", status_code=409)
             return error_response("Failed to update location due to a database integrity issue.", error=str(e), status_code=500)
         except Exception as e:
             db.session.rollback()
