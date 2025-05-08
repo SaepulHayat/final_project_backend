@@ -53,7 +53,7 @@ def get_my_ratings_route():
     return create_response(**result), status_code
 
 @user_ratings_bp.route('/<int:user_id>/ratings', methods=['GET'])
-@role_required([UserRoles.ADMIN.value]) # Only Admins can view others' ratings by user ID
+@role_required([UserRoles.SELLER.value]) # Only Admins can view others' ratings by user ID
 def get_user_ratings_route(user_id):
     args = request.args
     result = rating_service.get_ratings_by_user(user_id, args)

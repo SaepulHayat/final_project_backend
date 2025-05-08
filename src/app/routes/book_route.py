@@ -11,7 +11,7 @@ book_bp = Blueprint('books', __name__, url_prefix='/api/v1/books')
 book_service = BookService()
 
 @book_bp.route('/', methods=['POST'])
-@role_required([UserRoles.SELLER.value, UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def create_book_route():
     user_id = get_jwt_identity()
     data = request.get_json()

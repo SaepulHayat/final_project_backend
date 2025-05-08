@@ -11,7 +11,7 @@ author_bp = Blueprint('authors', __name__, url_prefix='/api/v1/authors')
 author_service = AuthorService()
 
 @author_bp.route('/', methods=['POST'])
-@role_required([UserRoles.ADMIN.value, UserRoles.SELLER.value]) # Example role check
+@role_required([UserRoles.SELLER.value]) # Example role check
 def create_author_route():
     data = request.get_json()
     if not data:
@@ -53,7 +53,7 @@ def get_books_by_author_route(author_id):
 
 @author_bp.route('/<int:author_id>', methods=['PATCH']) # Changed PUT to PATCH for
 # partial updates
-@role_required([UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def update_author_route(author_id):
     data = request.get_json()
     if not data:
@@ -74,7 +74,7 @@ def update_author_route(author_id):
     return create_response(**result), status_code
 
 @author_bp.route('/<int:author_id>', methods=['DELETE'])
-@role_required([UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def delete_author_route(author_id):
     result = author_service.delete_author(author_id)
     status_code = 200 # Or 204 No Content on successful delete

@@ -1,7 +1,9 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
 load_dotenv(os.path.join(basedir, '.env'))
 
 class Config:
@@ -12,6 +14,11 @@ class Config:
 
     if not SECRET_KEY and os.environ.get('FLASK_ENV') == 'production':
         raise ValueError("No SECRET_KEY set for Flask application in production")
+    SECRET_KEY = os.getenv('SECRET_KEY', 'my_very_secret_key')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    DEBUG = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(Config):
     """Development configuration."""
@@ -27,10 +34,18 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
         'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
+        'sqlite:///:memory:'
+    WTF_CSRF_ENABLED = False
 
 class ProductionConfig(Config):
     """Production configuration."""
+    """Production configuration."""
     DEBUG = False
+    TESTING = False
+    SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
+        'sqlite:///' + os.path.join(os.path.dirname(basedir), 'test.db')    
     TESTING = False
     SQLALCHEMY_DATABASE_URI = os.environ.get('TESTING_DATABASE_URL') or \
         'sqlite:///' + os.path.join(os.path.dirname(basedir), 'test.db')    
@@ -39,10 +54,14 @@ class ProductionConfig(Config):
     
     if not SQLALCHEMY_DATABASE_URI:
         raise ValueError("No PRODUCTION_DATABASE_URL set for Flask application in production")
+    
+class TestConfig(Config):  
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  
+    TESTING = True  
 
 config_by_name = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
+    'default': DevelopmentConfig,
+    'dev': DevelopmentConfig,
+    'prod': ProductionConfig,
+    'test': TestConfig
 }

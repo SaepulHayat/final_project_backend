@@ -460,3 +460,21 @@ def validate_book_input(data: Dict[str, any], is_update: bool = False) -> Option
 
 
     return errors if errors else None
+
+# validasi input transaksi
+def validate_transaction_input(data):
+    errors = {}
+    
+    if not data.get('book_id'):
+        errors['book_id'] = 'Book ID is required'
+    
+    if not data.get('quantity') or int(data.get('quantity', 0)) < 1:
+        errors['quantity'] = 'Quantity must be at least 1'
+    
+    if not data.get('payment_method'):
+        errors['payment_method'] = 'Payment method is required'
+    
+    if data.get('payment_method') == 'shipping' and not data.get('shipping_location_id'):
+        errors['shipping_location_id'] = 'Shipping location is required for shipping method'
+    
+    return errors
