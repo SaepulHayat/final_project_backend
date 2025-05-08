@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from flask_cors import CORS
 import click
@@ -14,6 +15,7 @@ import os
 def create_app():
     config_name = os.getenv('FLASK_ENV', 'dev')
     app = Flask(__name__)
+    logging.basicConfig(level=logging.INFO) # Configure logging to show INFO level messages
     print("--- Config Name:", config_name) # Debug
     print("--- Keys in config_by_name:", config_by_name.keys())
     app.config.from_object(config_by_name[config_name])
@@ -25,32 +27,32 @@ def create_app():
     # # Define the seed CLI group
     # seed_cli = AppGroup('seed', help='Commands for seeding the database.')
 
-    @seed_cli.command('run')
-    def run_seed_command():
-        """Seeds the database with initial data."""
-        # No need for app.app_context() here as Flask CLI handles it
-        try:
-            seed_all()
-            click.echo("Database seeded successfully.")
-        except Exception as e:
-            # db.session.rollback() # seed_all or individual seeders should handle rollback on error
-            click.echo(f"Error during seeding: {e}")
-            # raise # Optionally re-raise
+    # @seed_cli.command('run')
+    # def run_seed_command():
+    #     """Seeds the database with initial data."""
+    #     # No need for app.app_context() here as Flask CLI handles it
+    #     try:
+    #         seed_all()
+    #         click.echo("Database seeded successfully.")
+    #     except Exception as e:
+    #         # db.session.rollback() # seed_all or individual seeders should handle rollback on error
+    #         click.echo(f"Error during seeding: {e}")
+    #         # raise # Optionally re-raise
 
-    @seed_cli.command('clear')
-    @click.option('--really', is_flag=True, help="Confirms the operation. Data will be lost.")
-    def clear_db_data_command(really):
-        """Clears data from relevant tables."""
-        if not really:
-            click.echo("Operation aborted. Use --really to confirm data deletion.")
-            return
-        try:
-            clear_data()
-            click.echo("Database data cleared successfully.")
-        except Exception as e:
-            # db.session.rollback() # clear_data should handle rollback
-            click.echo(f"Error during data clearing: {e}")
-            # raise
+    # @seed_cli.command('clear')
+    # @click.option('--really', is_flag=True, help="Confirms the operation. Data will be lost.")
+    # def clear_db_data_command(really):
+    #     """Clears data from relevant tables."""
+    #     if not really:
+    #         click.echo("Operation aborted. Use --really to confirm data deletion.")
+    #         return
+    #     try:
+    #         clear_data()
+    #         click.echo("Database data cleared successfully.")
+    #     except Exception as e:
+    #         # db.session.rollback() # clear_data should handle rollback
+    #         click.echo(f"Error during data clearing: {e}")
+    #         # raise
 
     # app.cli.add_command(seed_cli)
     

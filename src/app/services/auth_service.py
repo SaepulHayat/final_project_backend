@@ -124,8 +124,8 @@ class AuthService:
                 return error_response("Invalid credentials", error="invalid_password", status_code=401)
 
             # Buat access dan refresh token
-            access_token = create_access_token(identity=str(user.id))
-            refresh_token = create_refresh_token(identity=str(user.id))
+            access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
+            refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'role': user.role})
 
             # Update last log.id)
 

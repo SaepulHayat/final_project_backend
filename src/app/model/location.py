@@ -18,7 +18,7 @@ class Location(db.Model):
 
     # --- Relationships ---
     city = db.relationship('City', back_populates='locations')
-    users = db.relationship('User', back_populates='location', lazy='select')
+    user = db.relationship('User', back_populates='location', uselist=False)
 
     def __repr__(self):
         city_name = self.city.name if self.city else "Unknown City"
