@@ -116,7 +116,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
       def get_all_locations(self, args, current_user_role): # Pass role for authorization
           # --- Authorization ---
           # Typically Admin only for listing all raw locations
-          if current_user_role != UserRoles.ADMIN.value: # Assuming UserRoles enum
+          if current_user_role != UserRoles.SELLER.value: # Assuming UserRoles enum
                return error_response("Forbidden", error="insufficient_permissions", status_code=403)
 
           # --- Pagination, Filtering, Sorting, Searching ---
@@ -167,7 +167,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               if user and user.location_id == location_id:
                   user_is_owner = True
 
-          if not (current_user_role == UserRoles.ADMIN.value or user_is_owner):
+          if not (current_user_role == UserRoles.SELLER.value or user_is_owner):
                return error_response("Forbidden", error="insufficient_permissions", status_code=403)
 
           # Use model's to_dict()
@@ -185,7 +185,7 @@ This guide details how to implement Create, Read, Update, and Delete (CRUD) oper
               if user and user.location_id == location_id:
                   user_is_owner = True
 
-          is_admin = current_user_role == UserRoles.ADMIN.value
+          is_admin = current_user_role == UserRoles.SELLER.value
 
           if not (is_admin or user_is_owner):
                return error_response("Forbidden", error="insufficient_permissions", status_code=403)

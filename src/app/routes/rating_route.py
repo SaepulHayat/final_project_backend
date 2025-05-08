@@ -56,6 +56,7 @@ def get_my_ratings_route():
 
 @user_ratings_bp.route('/<int:user_id>/ratings', methods=['GET'])
 @role_required([UserRoles.SELLER.value]) # Only Admins can view others' ratings by user ID
+@role_required([UserRoles.SELLER.value]) # Only Admins can view others' ratings by user ID
 def get_user_ratings_route(user_id):
     args = request.args
     result = rating_service.get_ratings_by_user(user_id, args)
@@ -78,6 +79,7 @@ def get_rating_by_id_route(rating_id):
             current_user_role = UserRoles(user.role) # Convert string role to enum
 
     # If only Admin can access this endpoint:
+    if not current_user_role or current_user_role != [UserRoles.SELLER.value]:
     if not current_user_role or current_user_role != [UserRoles.SELLER.value]:
         # rating = Rating.query.get(rating_id) # Need to fetch rating first
         # if not rating or rating.user_id != current_user_id:

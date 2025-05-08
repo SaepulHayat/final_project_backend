@@ -70,7 +70,7 @@ class LocationService:
             return error_response("Failed to create location", error=str(e), status_code=500)
 
     def get_all_locations(self, args, current_user_role):
-        if current_user_role != UserRoles.ADMIN.value:
+        if current_user_role != UserRoles.SELLER.value:
             return error_response("Forbidden: You do not have permission to view all locations.", error="insufficient_permissions", status_code=403)
 
         page = args.get('page', 1, type=int)
@@ -109,7 +109,7 @@ class LocationService:
         if not location:
             return error_response("Location not found", error="not_found", status_code=404)
 
-        is_admin = current_user_role == UserRoles.ADMIN.value
+        is_admin = current_user_role == UserRoles.SELLER.value
         user_is_owner = False
 
         if not is_admin and current_user_id:
@@ -127,7 +127,7 @@ class LocationService:
         if not location:
             return error_response("Location not found", error="not_found", status_code=404)
 
-        is_admin = current_user_role == UserRoles.ADMIN.value
+        is_admin = current_user_role == UserRoles.SELLER.value
         user_is_owner = False
 
         if not is_admin and current_user_id:
@@ -182,7 +182,7 @@ class LocationService:
             db.session.rollback()
             logger.error(f"Error updating location (IntegrityError) {location_id}: {e}", exc_info=True)
             if "unique constraint" in str(e.orig).lower():
-                 return error_response("Failed to update location due to a conflict.", error="conflict", status_code=409)
+                return error_response("Failed to update location due to a conflict.", error="conflict", status_code=409)
             return error_response("Failed to update location due to a database integrity issue.", error=str(e), status_code=500)
         except Exception as e:
             db.session.rollback()
@@ -194,7 +194,7 @@ class LocationService:
         if not location:
             return error_response("Location not found", error="not_found", status_code=404)
 
-        is_admin = current_user_role == UserRoles.ADMIN.value
+        is_admin = current_user_role == UserRoles.SELLER.value
         user_is_owner = False
         current_user = None # Initialize current_user
 

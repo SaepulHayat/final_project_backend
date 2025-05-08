@@ -54,6 +54,7 @@ def get_books_by_author_route(author_id):
 @author_bp.route('/<int:author_id>', methods=['PATCH']) # Changed PUT to PATCH for
 # partial updates
 @role_required([UserRoles.SELLER.value])
+@role_required([UserRoles.SELLER.value])
 def update_author_route(author_id):
     data = request.get_json()
     if not data:
@@ -74,6 +75,7 @@ def update_author_route(author_id):
     return create_response(**result), status_code
 
 @author_bp.route('/<int:author_id>', methods=['DELETE'])
+@role_required([UserRoles.SELLER.value])
 @role_required([UserRoles.SELLER.value])
 def delete_author_route(author_id):
     result = author_service.delete_author(author_id)

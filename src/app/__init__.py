@@ -1,14 +1,13 @@
 from flask import Flask
 from flask_cors import CORS
+import click
+from flask.cli import AppGroup
 from .config import config_by_name
 from .extensions import init_extensions
 from .model import *
 from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp, book_bp
 from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
 from .seed import seed_all, clear_data # Import seeder functions
-from flask.cli import AppGroup
-import click
-
 import os
 
 
@@ -19,11 +18,12 @@ def create_app():
     print("--- Keys in config_by_name:", config_by_name.keys())
     app.config.from_object(config_by_name[config_name])
     
-    # Initialize extensions here
     init_extensions(app)
-    
-    # Define the seed CLI group
-    seed_cli = AppGroup('seed', help='Commands for seeding the database.')
+
+    CORS(app)
+
+    # # Define the seed CLI group
+    # seed_cli = AppGroup('seed', help='Commands for seeding the database.')
 
     @seed_cli.command('run')
     def run_seed_command():
@@ -52,9 +52,7 @@ def create_app():
             click.echo(f"Error during data clearing: {e}")
             # raise
 
-    app.cli.add_command(seed_cli)
-    
-    
+    # app.cli.add_command(seed_cli)
     
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/v1/auth')

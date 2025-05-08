@@ -255,7 +255,7 @@ def seed_books():
     if not sellers: # Fallback to any user if no specific sellers found
         all_users = User.query.all()
         if all_users:
-             sellers = {user.email: user for user in all_users} # Use any user as a seller
+            sellers = {user.email: user for user in all_users} # Use any user as a seller
         else:
             print("Warning: No users found to act as sellers. Books cannot be seeded without a user_id.")
             return
@@ -265,35 +265,35 @@ def seed_books():
         {
             "title": "Harry Potter and the Sorcerer's Stone", "author_name": "J.K. Rowling",
             "publisher_name": "Bloomsbury", "seller_email": "bob@example.com", # Bob is a seller
-            "description": "The first book in the Harry Potter series.", "quantity": 50, "price": Decimal("19.99"),
+            "description": "The first book in the Harry Potter series.", "quantity": 50, "price": Decimal("19000"),
             "discount_percent": 10, "image_url_1": "https://example.com/hp1.jpg",
             "category_names": ["Fantasy", "Children's Books"]
         },
         {
             "title": "A Game of Thrones", "author_name": "George R.R. Martin",
             "publisher_name": "Bantam Spectra", "seller_email": "diana@example.com", # Diana is a seller
-            "description": "The first book in A Song of Ice and Fire.", "quantity": 30, "price": Decimal("24.99"),
+            "description": "The first book in A Song of Ice and Fire.", "quantity": 30, "price": Decimal("250000"),
             "discount_percent": 0, "image_url_1": "https://example.com/got1.jpg",
             "category_names": ["Fantasy", "Fiction"]
         },
         {
             "title": "The Hobbit", "author_name": "J.R.R. Tolkien",
             "publisher_name": "Allen & Unwin", "seller_email": "bob@example.com",
-            "description": "A prelude to The Lord of the Rings.", "quantity": 40, "price": Decimal("15.00"),
+            "description": "A prelude to The Lord of the Rings.", "quantity": 40, "price": Decimal("150000"),
             "discount_percent": 5, "image_url_1": "https://example.com/hobbit.jpg",
             "category_names": ["Fantasy", "Children's Books"]
         },
         {
             "title": "Murder on the Orient Express", "author_name": "Agatha Christie",
             "publisher_name": "HarperCollins", "seller_email": "diana@example.com",
-            "description": "A classic Hercule Poirot mystery.", "quantity": 25, "price": Decimal("12.99"),
+            "description": "A classic Hercule Poirot mystery.", "quantity": 25, "price": Decimal("120099"),
             "discount_percent": 0, "image_url_1": "https://example.com/orient.jpg",
             "category_names": ["Mystery", "Thriller"]
         },
         {
             "title": "Sapiens: A Brief History of Humankind", "author_name": "Yuval Noah Harari",
             "publisher_name": "Harvill Secker", "seller_email": "george@example.com", # George is a seller
-            "description": "A captivating account of human history.", "quantity": 60, "price": Decimal("29.99"),
+            "description": "A captivating account of human history.", "quantity": 60, "price": Decimal("69999"),
             "discount_percent": 15, "image_url_1": "https://example.com/sapiens.jpg",
             "category_names": ["Non-Fiction", "History", "Science"]
         },
@@ -307,7 +307,7 @@ def seed_books():
         {
             "title": "Python Crash Course", "author_name": "Eric Matthes",
             "publisher_name": "No Starch Press", "seller_email": "diana@example.com",
-            "description": "A hands-on, project-based introduction to programming.", "quantity": 70, "price": Decimal("39.95"),
+            "description": "A hands-on, project-based introduction to programming.", "quantity": 70, "price": Decimal("35595"),
             "discount_percent": 5, "image_url_1": "https://example.com/python_crash.jpg",
             "category_names": ["Technology", "Programming", "Self-Help"]
         }

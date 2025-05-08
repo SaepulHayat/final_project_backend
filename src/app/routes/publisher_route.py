@@ -47,6 +47,7 @@ def get_books_by_publisher_route(publisher_id):
 
 @publisher_bp.route('/<int:publisher_id>', methods=['PATCH', 'PUT']) # Allow PUT for full replacement semantics if desired
 @role_required([UserRoles.SELLER.value]) # Only Admins can update
+@role_required([UserRoles.SELLER.value]) # Only Admins can update
 def update_publisher_route(publisher_id):
     data = request.get_json()
     if not data:
@@ -57,6 +58,7 @@ def update_publisher_route(publisher_id):
     return create_response(**result), status_code
 
 @publisher_bp.route('/<int:publisher_id>', methods=['DELETE'])
+@role_required([UserRoles.SELLER.value]) # Only Admins can delete
 @role_required([UserRoles.SELLER.value]) # Only Admins can delete
 def delete_publisher_route(publisher_id):
     result = publisher_service.delete_publisher(publisher_id)
