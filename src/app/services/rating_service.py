@@ -168,7 +168,20 @@ class RatingService:
             return error_response("Rating not found", error="not_found", status_code=404)
 
         # Authorization Check: User/Seller can only update their own, Admin can update any
-        if current_user_role != UserRoles.ADMIN and rating.user_id != current_user_id:
+        logger.debug(f"Auth Check in update_rating for rating_id {rating_id}:") # DEBUG LOG
+        logger.debug(f"  Current User ID: {current_user_id} (Type: {type(current_user_id)})") # DEBUG LOG
+        logger.debug(f"  Rating User ID: {rating.user_id} (Type: {type(rating.user_id)})") # DEBUG LOG
+        logger.debug(f"  Current User Role: {current_user_role} (Value: {current_user_role.value}, Type: {type(current_user_role)})") # DEBUG LOG
+        logger.debug(f"  Admin Role Enum: {UserRoles.ADMIN} (Value: {UserRoles.ADMIN.value}, Type: {type(UserRoles.ADMIN)})") # DEBUG LOG
+        
+        is_admin = current_user_role == UserRoles.ADMIN
+        is_owner = rating.user_id == int(current_user_id) if isinstance(current_user_id, str) and current_user_id.isdigit() else rating.user_id == current_user_id
+
+        logger.debug(f"  Is Admin: {is_admin}") # DEBUG LOG
+        logger.debug(f"  Is Owner (after potential type cast): {is_owner}") # DEBUG LOG
+
+        if not is_admin and not is_owner:
+            logger.warning(f"Authorization failed for updating rating ID {rating_id}. User ID {current_user_id} (Role: {current_user_role.value}) attempted to update rating owned by User ID {rating.user_id}.") # DEBUG LOG
             return error_response("Forbidden: You can only update your own ratings", error="forbidden", status_code=403)
 
         errors = validate_rating_input(data, is_update=True) # Allow partial updates
@@ -204,7 +217,10 @@ class RatingService:
             return error_response("Rating not found", error="not_found", status_code=404)
 
         # Authorization Check: User/Seller can only delete their own, Admin can delete any
-        if current_user_role != UserRoles.ADMIN and rating.user_id != current_user_id:
+        is_admin = current_user_role == UserRoles.ADMIN
+        is_owner = rating.user_id == int(current_user_id) if isinstance(current_user_id, str) and current_user_id.isdigit() else rating.user_id == current_user_id
+        
+        if not is_admin and not is_owner:
             return error_response("Forbidden: You can only delete your own ratings", error="forbidden", status_code=403)
 
         try:

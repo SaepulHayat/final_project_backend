@@ -108,7 +108,7 @@ def update_rating_route(rating_id):
     return create_response(**result), status_code
 
 @ratings_bp.route('/<int:rating_id>', methods=['DELETE'])
-# No specific role needed here, service layer handles ownership/admin check
+@role_required([UserRoles.CUSTOMER.value, UserRoles.SELLER.value, UserRoles.ADMIN.value])
 def delete_rating_route(rating_id):
     user_identity = get_jwt_identity()
     current_user_id = user_identity.get('id') if isinstance(user_identity, dict) else user_identity
@@ -121,5 +121,7 @@ def delete_rating_route(rating_id):
     status_code = result.get('status_code', 500)
 
     if result.get('status') == 'success' and status_code == 200:
+        logger.info(f"Rating ID {rating_id} deleted successfully. Returning 204 No Content.") # DEBUG LOG
         return '', 204
+    logger.warning(f"Rating ID {rating_id} deletion service call did not return expected success/200. Result: {result}, Status Code: {status_code}. Returning full response.") # DEBUG LOG
     return create_response(**result), status_code
