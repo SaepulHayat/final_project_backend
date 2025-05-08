@@ -53,7 +53,7 @@ def get_book_by_id_route(book_id):
     return create_response(**result), status_code
 
 @book_bp.route('/me', methods=['GET'])
-@role_required([UserRoles.SELLER.value, UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def get_my_books_route():
     user_id = get_jwt_identity()
     args = request.args
@@ -62,7 +62,7 @@ def get_my_books_route():
     return create_response(**result), status_code
 
 @book_bp.route('/<int:book_id>', methods=['PATCH', 'PUT'])
-@role_required([UserRoles.SELLER.value, UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def update_book_route(book_id):
     user_id = int(get_jwt_identity())
     data = request.get_json()
@@ -72,7 +72,7 @@ def update_book_route(book_id):
     return create_response(**result), status_code
 
 @book_bp.route('/<int:book_id>', methods=['DELETE'])
-@role_required([UserRoles.SELLER.value, UserRoles.ADMIN.value])
+@role_required([UserRoles.SELLER.value])
 def delete_book_route(book_id):
 
     user_id = int(get_jwt_identity()) # Cast to int
