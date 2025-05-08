@@ -13,6 +13,11 @@ class Config:
 
     if not SECRET_KEY and os.environ.get('FLASK_ENV') == 'production':
         raise ValueError("No SECRET_KEY set for Flask application in production")
+    SECRET_KEY = os.getenv('SECRET_KEY', 'my_very_secret_key')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    DEBUG = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 class DevelopmentConfig(Config):
     """Development configuration."""
@@ -42,8 +47,8 @@ class ProductionConfig(Config):
         raise ValueError("No PRODUCTION_DATABASE_URL set for Flask application in production")
 
 config_by_name = {
-    'development': DevelopmentConfig,
-    'testing': TestingConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
+    'default': DevelopmentConfig,
+    'dev': DevelopmentConfig,
+    'prod': ProductionConfig,
+    'test': TestingConfig
 }

@@ -3,7 +3,7 @@ from flask_cors import CORS
 import click
 from flask.cli import AppGroup
 from .config import config_by_name
-from .extensions import init_db
+from .extensions import init_extensions
 from .model import *
 from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp, book_bp
 from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
@@ -18,7 +18,7 @@ def create_app():
     print("--- Keys in config_by_name:", config_by_name.keys())
     app.config.from_object(config_by_name[config_name])
     
-    init_db(app)
+    init_extensions(app)
 
     CORS(app)
 
