@@ -9,6 +9,8 @@ from .country_route import country_bp
 from .location_route import location_bp
 from .book_route import book_bp
 from .rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
+from .wishlist_route import wishlist_bp
+from .cart_route import cart_bp
 
 __all__ = [
     'auth_bp',
@@ -23,6 +25,8 @@ __all__ = [
     'book_bp',
     'book_ratings_bp',
     'user_ratings_bp',
-    'ratings_bp'
+    'ratings_bp',
+    'wishlist_bp',
+    'cart_bp'
     
 ]

@@ -20,10 +20,10 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True, index=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), unique=True, nullable=True, index=True)
 
     # --- Relationships ---
-    location = db.relationship('Location', back_populates='users', foreign_keys=[location_id])
+    location = db.relationship('Location', back_populates='user', foreign_keys=[location_id], uselist=False)
     books_for_sale = db.relationship('Book', back_populates='user', lazy='dynamic', cascade="all, delete-orphan")
     ratings = db.relationship('Rating', back_populates='user', cascade="all, delete-orphan")
     referrer = db.relationship(
@@ -70,7 +70,8 @@ class User(db.Model):
             'balance': float(self.balance) if self.balance is not None else 0,
             'is_active': self.is_active,
             'total_referred': self.total_referred,
-            'last_login': self.last_login.isoformat() if self.last_login else None
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'location_id': self.location_id
         }
         if include_location and self.location:
             data['location'] = self.location.to_dict()

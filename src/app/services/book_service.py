@@ -1,6 +1,6 @@
 from decimal import Decimal, ROUND_HALF_UP
 from flask_jwt_extended import get_jwt_identity 
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from sqlalchemy.orm import joinedload, subqueryload
 from sqlalchemy.exc import IntegrityError
 from ..extensions import db
@@ -150,46 +150,94 @@ class BookService:
             logger.error(f"Error creating book '{data['title']}': {e}", exc_info=True)
             return error_response("Failed to create book", error=str(e), status_code=500)
 
-    def get_all_books(self, args):
-        # (Uses Book.rating for sorting if specified)
+    def get_all_books_filtered(self, args,
+                            categories: str = None,
+                            publisher_name: str = None,
+                            author_name: str = None,
+                            seller_name: str = None,
+                            city_name: str = None,
+                            min_rating: float = None,
+                            min_price: float = None,
+                            max_price: float = None):
         page = args.get('page', 1, type=int)
         per_page = args.get('per_page', 12, type=int)
-        search_term = args.get('search')
-        author_id = args.get('author_id', type=int)
-        publisher_id = args.get('publisher_id', type=int)
-        category_id = args.get('category_id', type=int)
-        user_id_filter = args.get('user_id', type=int) # Filter by user who listed the book
-        min_price = args.get('min_price', type=float)
-        max_price = args.get('max_price', type=float)
+        search_term = args.get('search') # For book title
+        user_id_filter = args.get('user_id', type=int) # Kept for get_books_by_user compatibility
         sort_by = args.get('sort_by', 'created_at')
         order = args.get('order', 'desc')
 
-        # Eager load related entities including the user and their location details
+        # Base Query with Eager Loading
         query = Book.query.options(
             joinedload(Book.author),
             joinedload(Book.publisher),
-            joinedload(Book.user).joinedload(User.location).joinedload(Location.city).joinedload(City.state).joinedload(State.country), # Load user and their full location path
+            joinedload(Book.user).joinedload(User.location).joinedload(Location.city).joinedload(City.state).joinedload(State.country),
             subqueryload(Book.categories)
         )
 
-        # Filtering
+        # General search for book title (from args)
+        if search_term:
+            query = query.filter(Book.title.ilike(f'%{search_term}%'))
 
-        if search_term: query = query.filter(Book.title.ilike(f'%{search_term}%'))
-        if author_id: query = query.filter(Book.author_id == author_id)
-        if publisher_id: query = query.filter(Book.publisher_id == publisher_id)
-        if category_id: query = query.filter(Book.categories.any(Category.id == category_id))
-        if user_id_filter: query = query.filter(Book.user_id == user_id_filter) # Filter by user
-        if min_price is not None: query = query.filter(Book.price >= Decimal(str(min_price)))
-        if max_price is not None: query = query.filter(Book.price <= Decimal(str(max_price)))
+        # Filter by user_id (primarily for get_books_by_user, from args)
+        if user_id_filter:
+            query = query.filter(Book.user_id == user_id_filter)
 
-        # Sorting (remains the same, uses Book.rating)
+        # Categories Filter (AND logic, by Name)
+        if categories:
+            category_names_list = [name.strip() for name in categories.split(',') if name.strip()]
+            if category_names_list:
+                # Ensure the book belongs to ALL specified categories (case-insensitive)
+                query = query.filter(and_(*[Book.categories.any(Category.name.ilike(f"%{name}%")) for name in category_names_list]))
+
+        # Publisher Filter (by Name)
+        if publisher_name:
+            query = query.join(Book.publisher).filter(Publisher.name.ilike(f"%{publisher_name}%"))
+
+        # Author Filter (by Name)
+        if author_name:
+            query = query.join(Book.author).filter(Author.full_name.ilike(f"%{author_name}%"))
+
+        # Seller Filter (by User Name)
+        if seller_name:
+            query = query.join(Book.user).filter(User.full_name.ilike(f"%{seller_name}%"))
+
+        # Location Filter (by City Name)
+        if city_name:
+            # Joins: Book -> User (seller) -> Location -> City
+            query = query.join(Book.user).join(User.location).join(Location.city).filter(City.name.ilike(f"%{city_name}%"))
+
+        # Rating Filter (Minimum Rating)
+        if min_rating is not None:
+            try:
+                rating_val = float(min_rating)
+                query = query.filter(Book.rating >= rating_val)
+            except ValueError:
+                logger.warning(f"Invalid min_rating value received: {min_rating}")
+
+
+        # Price Filter (Min to Max)
+        if min_price is not None:
+            try:
+                query = query.filter(Book.price >= Decimal(str(min_price)))
+            except ValueError: 
+                logger.warning(f"Invalid min_price value received: {min_price}")
+        if max_price is not None:
+            try:
+                query = query.filter(Book.price <= Decimal(str(max_price)))
+            except ValueError: 
+                logger.warning(f"Invalid max_price value received: {max_price}")
+
+        # Sorting
         order_direction = db.desc if order.lower() == 'desc' else db.asc
         if sort_by == 'price':
             query = query.order_by(order_direction(Book.price))
         elif sort_by == 'title':
             query = query.order_by(order_direction(Book.title))
         elif sort_by == 'rating':
-            query = query.order_by(order_direction(Book.rating))
+            if order.lower() == 'desc':
+                query = query.order_by(order_direction(Book.rating.nullslast()))
+            else:
+                query = query.order_by(order_direction(Book.rating.nullsfirst()))
         else: # Default sort by creation date
             query = query.order_by(order_direction(Book.created_at))
 
@@ -198,7 +246,6 @@ class BookService:
             return success_response(
                 "Books retrieved successfully",
                 data={
-                    # Use the corrected to_simple_dict method
                     "books": [book.to_simple_dict() for book in paginated_books.items],
                     "total": paginated_books.total,
                     "pages": paginated_books.pages,
@@ -207,7 +254,7 @@ class BookService:
                 status_code=200
             )
         except Exception as e:
-            logger.error(f"Error retrieving books: {e}", exc_info=True)
+            logger.error(f"Error retrieving books with filters: {e}", exc_info=True)
             return error_response("Failed to retrieve books", error=str(e), status_code=500)
 
     def get_book_by_id(self, book_id):
@@ -230,10 +277,11 @@ class BookService:
 
     def get_books_by_user(self, owner_user_id, args):
         """Gets books listed by a specific user."""
-        # Set the user_id filter in the args and call get_all_books
+        # Set the user_id filter in the args and call get_all_books_filtered
         args = args.copy() # Avoid modifying the original args dict
         args['user_id'] = owner_user_id
-        return self.get_all_books(args)
+        # The other filter parameters (categories, publisher_name, etc.) will default to None.
+        return self.get_all_books_filtered(args=args)
 
     def update_book(self, book_id, data, current_user_id):
         # Eager load the user relationship for the authorization check
@@ -244,6 +292,10 @@ class BookService:
         # Authorization Check: Ensure the current user owns the book or is an admin
         user = User.query.get(current_user_id)
         if not user: return error_response("User not found.", error="unauthorized", status_code=401) # Should not happen with jwt_required
+        logger.info(f"Authorization check for Book ID {book_id} by User ID {current_user_id}:")
+        logger.info(f"Book's owner user_id: {book.user_id} (type: {type(book.user_id)})")
+        logger.info(f"Current user_id from token: {current_user_id} (type: {type(current_user_id)})")
+        logger.info(f"Current user's role: {user.role}")
         is_owner = book.user_id == current_user_id
         is_admin = user.role == 'admin' # Assuming 'admin' role exists
         if not (is_owner or is_admin):
@@ -320,6 +372,13 @@ class BookService:
         # Authorization Check
         user = User.query.get(current_user_id)
         if not user: return error_response("User not found.", error="unauthorized", status_code=401)
+
+        logger.info(f"DEBUG: Checking ownership for delete. Book ID: {book_id}")
+        logger.info(f"DEBUG: book.user_id: {book.user_id} (type: {type(book.user_id)})")
+        logger.info(f"DEBUG: current_user_id: {current_user_id} (type: {type(current_user_id)})")
+        logger.info(f"DEBUG: user.id from User.query.get: {user.id} (type: {type(user.id)})")
+        logger.info(f"DEBUG: user.role: {user.role}")
+
         is_owner = book.user_id == current_user_id
         is_admin = user.role == 'admin'
         if not (is_owner or is_admin):

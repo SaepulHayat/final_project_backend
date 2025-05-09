@@ -14,13 +14,16 @@ logger = logging.getLogger(__name__)
 class LocationService:
 
     def create_location(self, data, current_user_id, current_user_role):
+        logger.debug(f"Attempting to create location. User ID: {current_user_id}, Role: {current_user_role}, Data: {data}")
         errors = validate_location_input(data)
         if errors:
+            logger.warning(f"Validation failed for location creation. Errors: {errors}")
             return error_response("Validation failed", errors=errors, status_code=400)
 
         city_id = data.get('city_id')
         city = City.query.get(city_id)
         if not city:
+            logger.warning(f"City with ID {city_id} not found during location creation.")
             return error_response(f"City with ID {city_id} not found", error="invalid_city_id", status_code=400)
 
         name = data.get('name', "").strip()
@@ -33,30 +36,39 @@ class LocationService:
             address=address if address else None,
             zip_code=zip_code if zip_code else None
         )
+        logger.debug(f"New location object created: {new_location}")
 
         try:
             db.session.add(new_location)
-            db.session.flush()
+            db.session.flush() # Ensure new_location.id is populated
+            logger.info(f"New location (ID: {new_location.id}) added to session and flushed. new_location.id type: {type(new_location.id)}")
 
             if current_user_role in [UserRoles.CUSTOMER.value, UserRoles.SELLER.value]:
+                logger.info(f"User role ({current_user_role}) is CUSTOMER or SELLER. Attempting to assign location to user {current_user_id}.")
                 user = User.query.get(current_user_id)
                 if user:
+                    logger.debug(f"User {current_user_id} (type: {type(current_user_id)}) found. User object: {user}. Current user.location_id: {user.location_id} (type: {type(user.location_id)}).")
                     # Check if user already has a location, handle as per business logic
                     # For now, we assume a user can only be directly linked to one location via user.location_id
                     if user.location_id and user.location_id != new_location.id:
                         logger.warning(f"User {user.id} already has location {user.location_id}. Overwriting with new location {new_location.id}.")
-                        # Potentially, you might want to prevent this or handle it differently
-                        # e.g., return error_response("User already has an assigned location. Please update it or remove it first.", status_code=409)
+                    
+                    logger.debug(f"Attempting to set user.location_id to new_location.id ({new_location.id}).")
                     user.location_id = new_location.id
-                    db.session.add(user)
-                    logger.info(f"Location ID {new_location.id} assigned to user {user.id} ({current_user_role}).")
+                    logger.debug(f"After assignment, user.location_id is now: {user.location_id} (type: {type(user.location_id)}).")
+                    
+                    db.session.add(user) # Add user to session to mark for update
+                    logger.info(f"User object (ID: {user.id}) added to session to update location_id to {user.location_id}.")
                 else:
-                    db.session.rollback()
-                    logger.error(f"User with ID {current_user_id} not found while trying to assign new location.")
+                    logger.error(f"User with ID {current_user_id} not found. Cannot assign location. Rolling back location creation.")
+                    db.session.rollback() # Rollback location creation if user not found
                     return error_response("Failed to assign location to user, user not found.", status_code=500)
+            else:
+                logger.info(f"User role ({current_user_role}) is not CUSTOMER or SELLER. Location will not be auto-assigned to user {current_user_id}.")
 
+            logger.info("Attempting to commit session.")
             db.session.commit()
-            logger.info(f"Location created: ID {new_location.id} by user {current_user_id} ({current_user_role}).")
+            logger.info(f"Location created and user assignment (if applicable) committed. Location ID: {new_location.id}, User ID: {current_user_id} ({current_user_role}).")
             return success_response("Location created successfully", data=new_location.to_dict(), status_code=201)
         except IntegrityError as e:
             db.session.rollback()
@@ -144,9 +156,8 @@ class LocationService:
 
         updated = False
         if 'city_id' in data:
-            if not is_admin:
-                return error_response("Forbidden: Only Admins can change the city of a location.", error="permission_denied_city_change", status_code=403)
-            
+            logger.info(f"User {current_user_id} (Role: {current_user_role}) attempting to change city_id for location {location_id}.")
+            # Removed admin check for city_id change
             new_city_id = data['city_id']
             city = City.query.get(new_city_id)
             if not city:
@@ -226,13 +237,6 @@ class LocationService:
             if users_assigned_to_location.count() == 1 and users_assigned_to_location.first().id == current_user_id:
                 is_sole_owner_deleting = True
                 users_to_unassign.append(current_user)
-            elif users_assigned_to_location.count() > 1:
-                logger.warning(f"Owner {current_user_id} attempted to delete location {location_id}, but it's also assigned to other users.")
-                return error_response(
-                    "Location cannot be deleted because it is assigned to other users. Please contact an administrator.",
-                    error="dependency_exists_other_users",
-                    status_code=409
-                )
         elif is_admin: # Admin is deleting
             for user_in_list in users_assigned_to_location.all():
                 users_to_unassign.append(user_in_list)

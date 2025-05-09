@@ -213,12 +213,12 @@ class StateService:
         # This prevents accidental mass deletion via cascade and is safer for admin actions.
         city_count = state.cities.count() # Efficiently check if related cities exist
         if city_count > 0:
-             logger.warning(f"Attempted to delete state {state_id} ('{state.name}') which has {city_count} associated cities.")
-             return error_response(
-                 f"Cannot delete state '{state.name}' because it has {city_count} associated cities. Please delete or reassign the cities first.",
-                 error="dependency_exists",
-                 status_code=409 # 409 Conflict indicates the resource cannot be deleted in its current state
-             )
+            logger.warning(f"Attempted to delete state {state_id} ('{state.name}') which has {city_count} associated cities.")
+            return error_response(
+                f"Cannot delete state '{state.name}' because it has {city_count} associated cities. Please delete or reassign the cities first.",
+                error="dependency_exists",
+                status_code=409 # 409 Conflict indicates the resource cannot be deleted in its current state
+            )
 
         # If the check passes (or is omitted), proceed with deletion.
         # The cascade="all, delete-orphan" on the relationship in state.py
