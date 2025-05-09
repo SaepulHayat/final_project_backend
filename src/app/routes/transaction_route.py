@@ -18,9 +18,12 @@ def create_transaction():
         data = request.get_json(silent=True) or request.form
         customer_id = get_jwt_identity()
         
+        
         # Validasi role customer
         user = User.query.get(customer_id)
-        if user.role != UserRoles.CUSTOMER:
+        logger.info(f"User role: '{user.role}', UserRoles.CUSTOMER.value: '{UserRoles.CUSTOMER.value}'")
+        if user.role != UserRoles.CUSTOMER.value:
+            
             return error_response("Only customers can create transactions"), 403
         
         result = transaction_service.create_transaction(data, customer_id)
@@ -74,17 +77,19 @@ def update_transaction_status(transaction_id):
         logger.error(f"Update transaction error: {str(e)}", exc_info=True)
         return error_response("Internal server error"), 500
 
-@transaction_bp.route('/customer/transactions', methods=['GET'])
+@transaction_bp.route('/customer', methods=['GET'])
 @jwt_required()
 def get_customer_transactions():
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         
-        if user.role != UserRoles.CUSTOMER:
+        if user.role != UserRoles.CUSTOMER.value:
             return error_response("Unauthorized access"), 403
+        
+        status = request.args.get('status')
             
-        result = transaction_service.get_user_transactions(user_id, UserRoles.CUSTOMER)
+        result = transaction_service.get_user_transactions(user_id, UserRoles.CUSTOMER.value, status)
         
         if result.get('status') == 'success':
             return jsonify(result), 200
@@ -95,14 +100,15 @@ def get_customer_transactions():
         logger.error(f"Get customer transactions error: {str(e)}", exc_info=True)
         return error_response("Internal server error"), 500
 
-@transaction_bp.route('/seller/transactions', methods=['GET'])
+
+@transaction_bp.route('/seller', methods=['GET'])
 @jwt_required()
 def get_seller_transactions():
     try:
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         
-        if user.role != UserRoles.SELLER:
+        if user.role != UserRoles.SELLER.value:
             return error_response("Unauthorized access"), 403
             
         result = transaction_service.get_user_transactions(user_id, UserRoles.SELLER)

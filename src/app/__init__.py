@@ -6,9 +6,10 @@ from flask.cli import AppGroup
 from .config import config_by_name
 from .extensions import init_extensions
 from .model import *
-from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp, book_bp
+from .routes import author_bp, category_bp, publisher_bp, city_bp, auth_bp, user_bp, state_bp, country_bp, location_bp, book_bp, cart_bp, wishlist_bp
+from .routes.transaction_route import transaction_bp
 from .routes.rating_route import book_ratings_bp, user_ratings_bp, ratings_bp
-from .seed import seed_all, clear_data # Import seeder functions
+from .seed import seed_all, clear_data 
 import os
 
 
@@ -24,7 +25,7 @@ def create_app():
 
     CORS(app)
 
-    # # Define the seed CLI group
+    # Define the seed CLI group
     # seed_cli = AppGroup('seed', help='Commands for seeding the database.')
 
     # @seed_cli.command('run')
@@ -70,6 +71,9 @@ def create_app():
     app.register_blueprint(ratings_bp)
     app.register_blueprint(country_bp, url_prefix='/api/v1/countries')
     app.register_blueprint(location_bp, url_prefix='/api/v1/locations')
+    app.register_blueprint(wishlist_bp, url_prefix='/api/v1/wishlists')
+    app.register_blueprint(cart_bp, url_prefix='/api/v1/carts')
+    app.register_blueprint(transaction_bp, url_prefix='/api/v1/transactions')
     
     @app.route('/')
     def index():

@@ -32,7 +32,7 @@ def create_location_route():
     return create_response(**result), status_code
 
 @location_bp.route('/', methods=['GET'])
-@role_required([UserRoles.SELLER.value])
+@role_required([UserRoles.SELLER.value, UserRoles.CUSTOMER.value])
 def get_locations_route():
     args = request.args
     jwt_data = get_jwt()

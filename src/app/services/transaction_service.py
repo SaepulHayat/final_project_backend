@@ -9,14 +9,15 @@ from ..model.transaction import Transaction
 from ..model.user import User
 from ..model.book import Book
 from ..extensions import db
-from ..util.validators import validate_transaction_input
-from ..util.response import create_response, error_response, success_response
-from ..util.roles import UserRoles
+from ..utils.validators import validate_transaction_input
+from ..utils.response import create_response, error_response, success_response
+from ..utils.roles import UserRoles
 
 logger = logging.getLogger(__name__)
 
 class TransactionService:
     def create_transaction(self, data, customer_id):
+        from ..extensions import db
         try:
             # Validasi input
             validation_errors = validate_transaction_input(data)
@@ -126,6 +127,11 @@ class TransactionService:
             if not transaction:
                 return error_response("Transaction not found")
             
+            # Tambahkan validasi status di sini
+            valid_statuses = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
+            if new_status not in valid_statuses:
+                return error_response("Invalid status value")
+            
             # Validasi status update berdasarkan role
             user = User.query.get(user_id)
             
@@ -156,22 +162,37 @@ class TransactionService:
             logger.error(f"Update transaction error: {str(e)}", exc_info=True)
             return error_response("Failed to update transaction", error=str(e))
             
-    def get_user_transactions(self, user_id, role):
+    def get_user_transactions(self, user_id, role, status=None):
         try:
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per-page', 10, type=int)
+            
             if role == UserRoles.CUSTOMER:
-                transactions = Transaction.query.filter_by(customer_id=user_id).all()
-                message = "Customer transactions retrieved"
+                query = Transaction.query.filter_by(customer_id=user_id)
             elif role == UserRoles.SELLER:
-                transactions = Transaction.query.filter_by(seller_id=user_id).all()
-                message = "Seller transactions retrieved"
+                query = Transaction.query.filter_by(seller_id=user_id)
             else:
                 return error_response("Invalid role")
+            
+            # Tambahkan filter status jika ada
+            if status:
+                query = query.filter_by(status=status)
                 
+            transactions = query.paginate(page=page, per_page=per_page)
+            message = f"{role.value} transactions retrieved"
+                    
             return success_response(
                 message,
-                [t.to_dict() for t in transactions]
+                {
+                    "results": [t.to_dict() for t in transactions.items],
+                    "pagination": {
+                        "count": transactions.total,
+                        "page": page,
+                        "per_page": per_page,
+                        "pages": transactions.pages,
+                    }
+                }
             )
-            
         except Exception as e:
             logger.error(f"Get transactions error: {str(e)}", exc_info=True)
             return error_response("Failed to retrieve transactions", error=str(e))

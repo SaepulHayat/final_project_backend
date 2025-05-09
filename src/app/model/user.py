@@ -70,7 +70,8 @@ class User(db.Model):
             'balance': float(self.balance) if self.balance is not None else 0,
             'is_active': self.is_active,
             'total_referred': self.total_referred,
-            'last_login': self.last_login.isoformat() if self.last_login else None
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'location_id': self.location_id
         }
         if include_location and self.location:
             data['location'] = self.location.to_dict()
